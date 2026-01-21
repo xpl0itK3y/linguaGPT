@@ -103,39 +103,49 @@ jobs:
 
           # Create AppImage
           echo "=== Creating AppImage ==="
-          mkdir -p packaging/AppImage/usr/bin
-          mkdir -p packaging/AppImage/usr/share/applications
-          mkdir -p packaging/AppImage/usr/share/icons/hicolor/256x256/apps
+          mkdir -p packaging/AppImage/AppDir/usr/bin
+          mkdir -p packaging/AppImage/AppDir/usr/share/applications
+          mkdir -p packaging/AppImage/AppDir/usr/share/icons/hicolor/256x256/apps
 
           # Copy executable
-          cp dist/LinguaGPT packaging/AppImage/usr/bin/
-          chmod +x packaging/AppImage/usr/bin/LinguaGPT
+          cp dist/LinguaGPT packaging/AppImage/AppDir/usr/bin/
+          chmod +x packaging/AppImage/AppDir/usr/bin/LinguaGPT
+
+          # Create AppRun script
+          cat > packaging/AppImage/AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${HERE}/usr/sbin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${HERE}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
+          export QTC_PLUGIN_PATH="${HERE}/usr/plugins"
+          exec "${HERE}/usr/bin/LinguaGPT" "$@"
+          EOF
+          chmod +x packaging/AppImage/AppDir/AppRun
 
           # Create desktop file
-          cat > packaging/AppImage/usr/share/applications/linguagpt.desktop << EOF
+          cat > packaging/AppImage/AppDir/linguagpt.desktop << EOF
           [Desktop Entry]
           Name=LinguaGPT
           Comment=AI-powered translation tool
-          Exec=/usr/bin/LinguaGPT
+          Exec=LinguaGPT
           Icon=linguagpt
           Terminal=false
           Type=Application
           Categories=Utility;Office;Translation;
           EOF
 
+          # Create simple icon (placeholder)
+          cat > packaging/AppImage/AppDir/linguagpt.png << 'EOFICON'
+          (binary placeholder - using .desktop file)
+          EOFICON
+
           # Download AppImageTool
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
 
           # Create AppImage
-          ./appimagetool \
-            --no-appstream \
-            --create-desktop-file \
-            --icon-file packaging/AppImage/usr/share/icons/hicolor/256x256/apps/linguagpt.png \
-            LinguaGPT \
-            packaging/AppImage/usr/ \
-            LinguaGPT-${VERSION}-x86_64.AppImage || \
-            echo "AppImage creation failed, but continuing..."
+          ./appimagetool --no-appstream packaging/AppImage/AppDir LinguaGPT-${VERSION}-x86_64.AppImage || echo "AppImage creation failed, but continuing..."
 
           # Copy AppImage to root
           if [ -f "LinguaGPT-${VERSION}-x86_64.AppImage" ]; then
