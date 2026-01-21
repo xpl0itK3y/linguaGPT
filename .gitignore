@@ -204,6 +204,12 @@ cython_debug/
 # Marimo
 marimo/_static/
 marimo/_lsp/
-<<<<<<< HEAD
+# Project specific
+*.log
+*.db
+*.sqlite
+config.json
+settings.json
+
+# Marimo
 __marimo__/
-=======

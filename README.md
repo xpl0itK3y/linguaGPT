@@ -1,101 +1,116 @@
-# LinguaGPT
+# LinguaGPT 🌐
 
-Modern desktop translator powered by OpenAI GPT with multi-language support.
+AI-powered translation tool using GPT models for high-quality translations between languages.
 
-## Features
+## ✨ Features
 
-- **Streaming Translation** - Real-time translation display
-- **Alternative Variants** - Up to 3 translation alternatives
-- **Multi-Language Support** - 10+ languages supported
-- **Modern Interface** - Dark theme with gradients
-- **System Tray** - Background operation
-- **Flexible Settings** - GPT model selection, interface language
+- 🤖 **GPT-powered translations** - High-quality translations using OpenAI's API
+- 🌍 **Multi-language support** - Translate between 100+ languages
+- 🎨 **Modern Dark UI** - Clean, user-friendly dark interface
+- 📱 **Cross-platform** - Available for Windows, macOS, and Linux
+- ⚡ **Fast & Lightweight** - Optimized for performance
+- 🔒 **Secure** - API key stored locally
 
-## Installation
+## 🚀 Quick Start
 
-### Windows
-1. Download `LinguaGPT-Setup-*.exe` from [Releases](https://github.com/yourusername/linguagpt/releases)
-2. Run installer and follow instructions
+### Download
 
-### macOS
-1. Download `LinguaGPT-*.dmg` from [Releases](https://github.com/yourusername/linguagpt/releases)
-2. Open DMG and drag app to Applications
+Get the latest release from [Releases](https://github.com/xpl0itK3y/linguaGPT/releases) page.
 
-### Linux
+### Installation
+
+#### Windows
+1. Download `LinguaGPT-Setup-*.exe` (recommended) or `LinguaGPT.exe` (portable)
+2. Run the installer or executable
+
+#### macOS
+1. Download `LinguaGPT-*.dmg`
+2. Open DMG and drag LinguaGPT.app to Applications
+3. Or download `LinguaGPT.app.zip` and extract
+
+#### Linux
+1. **Option 1 - DEB Package**: Download `linguagpt_*_amd64.deb` and install:
+   ```bash
+   sudo dpkg -i linguagpt_*_amd64.deb
+   ```
+2. **Option 2 - Executable**: Download `LinguaGPT` and run:
+   ```bash
+   chmod +x LinguaGPT
+   ./LinguaGPT
+   ```
+
+## 🔧 Requirements
+
+- OpenAI API key (get from [OpenAI Platform](https://platform.openai.com/))
+- Internet connection
+- For Linux: X11 display server
+
+## 📝 Usage
+
+1. Launch LinguaGPT
+2. Enter your OpenAI API key in settings
+3. Select source and target languages
+4. Enter or paste text to translate
+5. Click "Translate" or press Enter
+6. Copy the translated result
+
+## 🏗️ Build from Source
+
 ```bash
-# Ubuntu/Debian
-sudo dpkg -i linguagpt_*_amd64.deb
-sudo apt-get install -f
-```
+# Clone repository
+git clone https://github.com/xpl0itK3y/linguaGPT.git
+cd linguagpt
 
-See [docs/INSTALL.md](docs/INSTALL.md) for detailed instructions
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-## Configuration
-
-1. Get API key from [platform.openai.com](https://platform.openai.com)
-2. Open app settings
-3. Enter API key
-4. Select GPT model (GPT-4o Mini recommended)
-
-## Development
-
-### Install Dependencies
-
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate  # Windows
-
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### Run
+# Build application
+python build.py
 
-```bash
+# Run application
 python main.py
 ```
 
-### Build
+## 🛠️ Development
 
 ```bash
-python build.py
+# Install development dependencies
+pip install -r requirements.txt
+
+# Run application in development mode
+python main.py
 ```
 
-## Automatic Releases
+## 🤝 Contributing
 
-Application automatically builds for all platforms when creating a tag:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```bash
-# Create new release
-git tag -a v1.0.0 -m "Release version 1.0.0"
-git push origin v1.0.0
-```
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-GitHub Actions automatically:
-- Builds app for Windows, macOS, and Linux
-- Creates installers (.exe, .dmg, .deb)
-- Publishes release with artifacts
+## 📄 License
 
-## Project Structure
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-```
-linguaGPT/
-├── app/                    # Application code
-│   ├── config.py          # Configuration
-│   ├── main_window.py     # Main window
-│   ├── settings_dialog.py # Settings
-│   └── ...
-├── scripts/               # Build scripts
-├── resources/             # Resources
-├── docs/                  # Documentation
-└── .github/workflows/     # GitHub Actions
-```
+## 🙏 Acknowledgments
 
-## License
+- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) - GUI framework
+- [OpenAI](https://openai.com/) - GPT API for translations
+- [PyInstaller](https://pyinstaller.org/) - Application bundling
 
-MIT License
+## 📧 Support
 
-## Contributing
+If you have any questions or issues:
 
-Pull requests welcome! For major changes, please open an issue first.
+- 🐛 [Report Issues](https://github.com/xpl0itK3y/linguaGPT/issues)
+- 💬 [Discussions](https://github.com/xpl0itK3y/linguaGPT/discussions)
+- 📧 Email: support@linguagpt.com
+
+---
