@@ -35,16 +35,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            libxcb-xinerama0 libxcb-randr0 libxcb-xtest0 \
-            libxcb-shape0 libxcb-xkb1 libxcb-icccm4 \
-            libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
-            libxkbcommon-x11-0 libx11-6 libx11-xcb1 \
-            libfontconfig1 libfreetype6 libdbus-1-3 \
-            libgl1 libglx-mesa0 libegl1 \
-            libqt6core6 libqt6gui6 libqt6widgets6 \
-            libqt6network6 libqt6printsupport6 libqt6svg6 \
-            qt6-base-dev-tools
+          sudo apt-get install -y libxcb-xinerama0 libxcb-randr0 libxcb-xtest0 libxcb-shape0 libxcb-xkb1 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxkbcommon-x11-0 libx11-6 libx11-xcb1 libfontconfig1 libfreetype6 libdbus-1-3 libgl1 libglx-mesa0 libegl1 libqt6core6 libqt6gui6 libqt6widgets6 libqt6network6 libqt6printsupport6 libqt6svg6 qt6-base-dev-tools
 
       - name: Build application (Linux/macOS)
         if: runner.os != 'Windows'
