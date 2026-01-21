@@ -81,14 +81,18 @@ if is_linux:
         # Add Qt6 runtime path for GitHub Actions
         qt6_path = "/usr/lib/x86_64-linux-gnu"
         if os.path.exists(qt6_path):
-            pyinstaller_args.extend([
-                f"--add-binary={qt6_path}/libQt6Core.so.6:.",
-                f"--add-binary={qt6_path}/libQt6Gui.so.6:.",
-                f"--add-binary={qt6_path}/libQt6Widgets.so.6:.",
-                f"--add-binary={qt6_path}/libQt6Network.so.6:.",
-                f"--add-binary={qt6_path}/libQt6PrintSupport.so.6:.",
-                f"--add-binary={qt6_path}/libQt6Svg.so.6:.",
-            ])
+            # Try to find Qt6 libraries with different naming conventions
+            qt_libs = [
+                "libQt6Core.so.6", "libQt6Gui.so.6", "libQt6Widgets.so.6",
+                "libQt6Network.so.6", "libQt6PrintSupport.so.6", "libQt6Svg.so.6"
+            ]
+            
+            for lib in qt_libs:
+                lib_path = f"{qt6_path}/{lib}"
+                if os.path.exists(lib_path):
+                    pyinstaller_args.append(f"--add-binary={lib_path}:.")
+                else:
+                    print(f"⚠️ Library not found: {lib_path}")
     
     # Add essential Qt6 plugins for Linux
     pyinstaller_args.extend([

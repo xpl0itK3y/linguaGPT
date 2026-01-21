@@ -54,12 +54,13 @@ jobs:
             libfreetype6 \
             libdbus-1-3 \
             # Install complete Qt6 runtime libraries
-            libqt6core6t64 \
-            libqt6gui6t64 \
-            libqt6widgets6t64 \
-            libqt6network6t64 \
-            libqt6printsupport6t64 \
-            libqt6svg6t64 \
+            # Try Ubuntu 24.04 packages first (with t64 suffix)
+            libqt6core6t64 || libqt6core6 \
+            libqt6gui6t64 || libqt6gui6 \
+            libqt6widgets6t64 || libqt6widgets6 \
+            libqt6network6t64 || libqt6network6 \
+            libqt6printsupport6t64 || libqt6printsupport6 \
+            libqt6svg6t64 || libqt6svg6 \
             qt6-base-dev-tools
 
       - name: Build application (Linux/macOS)

@@ -22,12 +22,13 @@ RUN apt-get update && apt-get install -y \
     libfontconfig1 \
     libfreetype6 \
     libdbus-1-3 \
-    libqt6core6t64 \
-    libqt6gui6t64 \
-    libqt6widgets6t64 \
-    libqt6network6t64 \
-    libqt6printsupport6t64 \
-    libqt6svg6t64 \
+    # Use Qt6 packages available in Ubuntu 22.04
+    libqt6core6 \
+    libqt6gui6 \
+    libqt6widgets6 \
+    libqt6network6 \
+    libqt6printsupport6 \
+    libqt6svg6 \
     qt6-base-dev-tools \
     && rm -rf /var/lib/apt/lists/*
 
