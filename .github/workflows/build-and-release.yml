@@ -48,8 +48,9 @@ jobs:
             libxkbcommon-x11-0 \
             libx11-6 \
             libx11-xcb1 \
-            libgl1-mesa-glx \
-            libegl1-mesa \
+            # Use different package names for Ubuntu 24.04
+            libgl1-mesa-glx || libgl1 \
+            libegl1-mesa || libegl1 \
             libfontconfig1 \
             libfreetype6 \
             libdbus-1-3 \

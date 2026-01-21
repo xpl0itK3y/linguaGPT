@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     libxkbcommon-x11-0 \
     libx11-6 \
     libx11-xcb1 \
+    # Use standard package names for Ubuntu 22.04
     libgl1-mesa-glx \
     libegl1-mesa \
     libfontconfig1 \

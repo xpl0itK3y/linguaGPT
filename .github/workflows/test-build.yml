@@ -34,22 +34,25 @@ jobs:
             libqt6widgets6t64 || libqt6widgets6 \
             libqt6network6t64 || libqt6network6 \
             libqt6printsupport6t64 || libqt6printsupport6 \
-            libqt6svg6t64 || libqt6svg6
+            libqt6svg6t64 || libqt6svg6 \
+            # Install graphics libraries (Ubuntu 24.04 uses different names)
+            libgl1-mesa-glx || libgl1 \
+            libegl1-mesa || libegl1
 
       - name: Test basic import
         run: |
-          python -c "from PyQt6.QtWidgets import QApplication; from app.main_window import GPTTranslator; print('✅ All imports successful')"
+          python -c "from PyQt6.QtWidgets import QApplication; from app.main_window import GPTTranslator; print('[SUCCESS] All imports successful')"
 
       - name: Test PyInstaller analysis
         run: |
-          python -c "import PyInstaller.__main__; PyInstaller.__main__.run(['main.py', '--name=test', '--onefile', '--windowed', '--clean', '--noconfirm']); print('✅ PyInstaller test successful')"
+          python -c "import PyInstaller.__main__; PyInstaller.__main__.run(['main.py', '--name=test', '--onefile', '--windowed', '--clean', '--noconfirm']); print('[SUCCESS] PyInstaller test successful')"
 
       - name: Check if executable was created
         run: |
           if [ -f "dist/test" ]; then
-            echo "✅ Executable created successfully"
+            echo "[SUCCESS] Executable created successfully"
             ls -la dist/
           else
-            echo "❌ Executable not found"
+            echo "[ERROR] Executable not found"
             exit 1
           fi

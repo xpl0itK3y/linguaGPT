@@ -34,10 +34,16 @@ def check_qt6_libraries():
     for lib in required_libs:
         result = subprocess.run(['ldconfig', '-p'], capture_output=True, text=True)
         if lib not in result.stdout:
-            print(f"❌ Missing Qt6 library: {lib}")
+            try:
+                print(f"[ERROR] Missing Qt6 library: {lib}")
+            except UnicodeEncodeError:
+                print(f"[ERROR] Missing Qt6 library: {lib}")
             return False
     
-    print("✅ Qt6 libraries found")
+    try:
+        print("[INFO] Qt6 libraries found")
+    except UnicodeEncodeError:
+        print("[INFO] Qt6 libraries found")
     return True
 
 # PyInstaller parameters - simplified and more reliable
@@ -77,7 +83,11 @@ pyinstaller_args.extend([
 # Add platform-specific configurations
 if is_linux:
     if is_github_actions:
-        print("🔧 Configuring for GitHub Actions Linux environment")
+        try:
+            print("[CONFIG] Configuring for GitHub Actions Linux environment")
+        except UnicodeEncodeError:
+            print("[CONFIG] Configuring for GitHub Actions Linux environment")
+        
         # Add Qt6 runtime path for GitHub Actions
         qt6_path = "/usr/lib/x86_64-linux-gnu"
         if os.path.exists(qt6_path):
@@ -92,7 +102,10 @@ if is_linux:
                 if os.path.exists(lib_path):
                     pyinstaller_args.append(f"--add-binary={lib_path}:.")
                 else:
-                    print(f"⚠️ Library not found: {lib_path}")
+                    try:
+                        print(f"[WARNING] Library not found: {lib_path}")
+                    except UnicodeEncodeError:
+                        print(f"[WARNING] Library not found: {lib_path}")
     
     # Add essential Qt6 plugins for Linux
     pyinstaller_args.extend([
@@ -120,29 +133,54 @@ elif is_mac:
     ])
 
 # Start build
-print(f"🚀 Building {app_name} for {sys.platform}...")
-print(f"📦 Parameters: {' '.join(pyinstaller_args)}")
+try:
+    print(f"[BUILD] Building {app_name} for {sys.platform}...")
+    print(f"[BUILD] Parameters: {' '.join(pyinstaller_args)}")
+except UnicodeEncodeError:
+    # Fallback for Windows consoles without Unicode support
+    print(f"[BUILD] Building {app_name} for {sys.platform}...")
+    print("[BUILD] Parameters configured successfully")
 
 # Check Qt6 libraries on Linux
 if is_linux and not check_qt6_libraries():
-    print("⚠️  Warning: Some Qt6 libraries are missing. Build may fail.")
+    print("[WARNING] Some Qt6 libraries are missing. Build may fail.")
 
 try:
     PyInstaller.__main__.run(pyinstaller_args)
-    print(f"\n✅ Build completed successfully!")
+    
+    try:
+        print(f"\n[SUCCESS] Build completed successfully!")
+    except UnicodeEncodeError:
+        print("\n[SUCCESS] Build completed successfully!")
 
     if is_windows:
-        print(f"📁 Executable file: dist/{app_name}.exe")
+        try:
+            print(f"[INFO] Executable file: dist/{app_name}.exe")
+        except UnicodeEncodeError:
+            print(f"[INFO] Executable file: dist/{app_name}.exe")
     elif is_mac:
-        print(f"📁 Application: dist/{app_name}.app")
+        try:
+            print(f"[INFO] Application: dist/{app_name}.app")
+        except UnicodeEncodeError:
+            print(f"[INFO] Application: dist/{app_name}.app")
     else:
-        print(f"📁 Executable file: dist/{app_name}")
+        try:
+            print(f"[INFO] Executable file: dist/{app_name}")
+        except UnicodeEncodeError:
+            print(f"[INFO] Executable file: dist/{app_name}")
 
-    print("\n💡 You can now distribute the application!")
+    try:
+        print("\n[INFO] You can now distribute application!")
+    except UnicodeEncodeError:
+        print("\n[INFO] You can now distribute application!")
 
 except Exception as e:
-    print(f"\n❌ Build error: {e}")
+    try:
+        print(f"\n[ERROR] Build error: {e}")
+    except UnicodeEncodeError:
+        print(f"\n[ERROR] Build error occurred")
+    
     if is_github_actions:
-        print("💡 This is a known issue with GitHub Actions Qt6 environment.")
-        print("💡 The build artifacts may still work despite warnings.")
+        print("[INFO] This is a known issue with GitHub Actions Qt6 environment.")
+        print("[INFO] The build artifacts may still work despite warnings.")
     sys.exit(1)
