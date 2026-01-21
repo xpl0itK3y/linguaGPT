@@ -3,19 +3,19 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on tag creation like v1.0.0
-  workflow_dispatch:  # Allows manual triggering
+      - "v*.*.*" # Triggers on tag creation like v1.0.0
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    
+
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-      fail-fast: false  # Continue build even if one platform fails
-        
+      fail-fast: false # Continue build even if one platform fails
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,8 +23,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -129,7 +129,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v') && success()
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -161,12 +161,13 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
+          echo "Release version will be: v$VERSION"
 
       - name: Prepare release files
         run: |
           echo "=== Creating release directory ==="
           mkdir -p release-files
-          
+
           echo "=== Copying Linux binary ==="
           if [ -f "artifacts/linux-artifacts/LinguaGPT" ]; then
             cp artifacts/linux-artifacts/LinguaGPT release-files/
@@ -174,7 +175,7 @@ jobs:
           else
             echo "✗ Linux binary not found"
           fi
-          
+
           echo "=== Copying Windows files ==="
           if [ -f "artifacts/windows-artifacts/LinguaGPT.exe" ]; then
             cp artifacts/windows-artifacts/LinguaGPT.exe release-files/
@@ -182,14 +183,14 @@ jobs:
           else
             echo "✗ Windows binary not found"
           fi
-          
+
           if [ -f "artifacts/windows-artifacts/LinguaGPT-Windows.zip" ]; then
             cp artifacts/windows-artifacts/LinguaGPT-Windows.zip release-files/
             echo "✓ Windows ZIP copied"
           else
             echo "✗ Windows ZIP not found"
           fi
-          
+
           echo "=== Copying macOS app ==="
           if [ -d "artifacts/macos-artifacts/LinguaGPT.app" ]; then
             cp -r artifacts/macos-artifacts/LinguaGPT.app release-files/
@@ -197,7 +198,7 @@ jobs:
           else
             echo "✗ macOS app not found"
           fi
-          
+
           echo "=== Final release files ==="
           ls -la release-files/ || echo "No release files"
           echo ""
@@ -208,30 +209,30 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: release-files/*
-          name: Release v${ steps.get_version.outputs.version }
+          name: Release v${{ steps.get_version.outputs.version }}
           body: |
-            ## LinguaGPT v${ steps.get_version.outputs.version }
-            
+            ## LinguaGPT v${{ steps.get_version.outputs.version }}
+
             ### 📦 Downloads
-            
+
             #### Windows
             - **Installer**: `LinguaGPT-Setup-*.exe` (recommended)
             - **Portable**: `LinguaGPT.exe`
-            
+
             #### macOS
             - **DMG image**: `LinguaGPT-*.dmg`
             - **Application**: `LinguaGPT.app` (inside DMG)
-            
+
             #### Linux
             - **DEB package**: `linguagpt_*_amd64.deb` (Ubuntu/Debian)
             - **Executable**: `LinguaGPT`
-            
+
             ### 📋 Installation
-            
+
             See [INSTALL.md](docs/INSTALL.md) for detailed instructions
-            
+
             ### 🚀 Changes
-            
+
             Automatically built application for all platforms.
           draft: false
           prerelease: false
