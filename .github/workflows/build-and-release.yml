@@ -141,6 +141,9 @@ jobs:
           # Create simple icon (16x16 PNG)
           convert -size 256x256 xc:#4A90E2 -gravity center -pointsize 72 -annotate +0+0 "LG" packaging/AppImage/AppDir/linguagpt.png
 
+          # Install FUSE for AppImage
+          sudo apt-get install -y fuse libfuse2
+
           # Download AppImageTool
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
