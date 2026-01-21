@@ -99,4 +99,3 @@ MIT License
 ## Contributing
 
 Pull requests welcome! For major changes, please open an issue first.
-
