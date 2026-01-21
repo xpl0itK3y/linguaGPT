@@ -100,6 +100,7 @@ jobs:
             dist/LinguaGPT
             installers/*.deb
           retention-days: 7
+        continue-on-error: true
 
       - name: Upload macOS artifacts
         if: runner.os == 'macOS'
@@ -110,6 +111,7 @@ jobs:
             dist/LinguaGPT.app
             installers/*.dmg
           retention-days: 7
+        continue-on-error: true
 
       - name: Upload Windows artifacts
         if: runner.os == 'Windows'
@@ -120,6 +122,7 @@ jobs:
             dist/LinguaGPT.exe
             installers/*
           retention-days: 7
+        continue-on-error: true
 
   release:
     name: Create Release
@@ -138,8 +141,19 @@ jobs:
 
       - name: List downloaded artifacts
         run: |
-          find artifacts -type f -name "*" || echo "No artifacts found"
+          echo "=== Listing artifacts directory structure ==="
+          find artifacts -type f || echo "No artifacts found"
+          echo ""
+          echo "=== Listing top-level directories ==="
           ls -la artifacts/ || echo "No artifacts directory"
+          echo ""
+          echo "=== Listing all subdirectories ==="
+          find artifacts -type d || echo "No subdirectories"
+          echo ""
+          echo "=== Verifying key files ==="
+          [ -f "artifacts/linux-artifacts/LinguaGPT" ] && echo "✓ Linux binary found" || echo "✗ Linux binary missing"
+          [ -f "artifacts/windows-artifacts/LinguaGPT.exe" ] && echo "✓ Windows binary found" || echo "✗ Windows binary missing"
+          [ -f "artifacts/macos-artifacts/LinguaGPT.app/Contents/Info.plist" ] && echo "✓ macOS app found" || echo "✗ macOS app missing"
 
       - name: Extract version from tag
         id: get_version
@@ -148,13 +162,49 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      - name: Prepare release files
+        run: |
+          echo "=== Creating release directory ==="
+          mkdir -p release-files
+          
+          echo "=== Copying Linux binary ==="
+          if [ -f "artifacts/linux-artifacts/LinguaGPT" ]; then
+            cp artifacts/linux-artifacts/LinguaGPT release-files/
+            echo "✓ Linux binary copied"
+          else
+            echo "✗ Linux binary not found"
+          fi
+          
+          echo "=== Copying Windows files ==="
+          if [ -f "artifacts/windows-artifacts/LinguaGPT.exe" ]; then
+            cp artifacts/windows-artifacts/LinguaGPT.exe release-files/
+            echo "✓ Windows binary copied"
+          else
+            echo "✗ Windows binary not found"
+          fi
+          
+          if [ -f "artifacts/windows-artifacts/LinguaGPT-Windows.zip" ]; then
+            cp artifacts/windows-artifacts/LinguaGPT-Windows.zip release-files/
+            echo "✓ Windows ZIP copied"
+          else
+            echo "✗ Windows ZIP not found"
+          fi
+          
+          echo "=== Copying macOS app ==="
+          if [ -d "artifacts/macos-artifacts/LinguaGPT.app" ]; then
+            cp -r artifacts/macos-artifacts/LinguaGPT.app release-files/
+            echo "✓ macOS app copied"
+          else
+            echo "✗ macOS app not found"
+          fi
+          
+          echo "=== Final release files ==="
+          ls -la release-files/ || echo "No release files"
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/linux-artifacts/**/*
-            artifacts/macos-artifacts/**/*
-            artifacts/windows-artifacts/**/*
+          files: release-files/*
           name: Release v${{ steps.get_version.outputs.version }}
           body: |
             ## LinguaGPT v${{ steps.get_version.outputs.version }}
