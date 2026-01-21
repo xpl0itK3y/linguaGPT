@@ -1,17 +1,17 @@
-# LinguaGPT 🌐
+# LinguaGPT
 
 AI-powered translation tool using GPT models for high-quality translations between languages.
 
-## ✨ Features
+## Features
 
-- 🤖 **GPT-powered translations** - High-quality translations using OpenAI's API
-- 🌍 **Multi-language support** - Translate between 100+ languages
-- 🎨 **Modern Dark UI** - Clean, user-friendly dark interface
-- 📱 **Cross-platform** - Available for Windows, macOS, and Linux
-- ⚡ **Fast & Lightweight** - Optimized for performance
-- 🔒 **Secure** - API key stored locally
+- **GPT-powered translations** - High-quality translations using OpenAI's API
+- **Multi-language support** - Translate between 100+ languages
+- **Modern Dark UI** - Clean, user-friendly dark interface
+- **Cross-platform** - Available for Windows, macOS, and Linux
+- **Fast & Lightweight** - Optimized for performance
+- **Secure** - API key stored locally
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Download
 
@@ -39,13 +39,13 @@ Get the latest release from [Releases](https://github.com/xpl0itK3y/linguaGPT/re
    ./LinguaGPT
    ```
 
-## 🔧 Requirements
+## Requirements
 
 - OpenAI API key (get from [OpenAI Platform](https://platform.openai.com/))
 - Internet connection
 - For Linux: X11 display server
 
-## 📝 Usage
+## Usage
 
 1. Launch LinguaGPT
 2. Enter your OpenAI API key in settings
@@ -54,7 +54,7 @@ Get the latest release from [Releases](https://github.com/xpl0itK3y/linguaGPT/re
 5. Click "Translate" or press Enter
 6. Copy the translated result
 
-## 🏗️ Build from Source
+## Build from Source
 
 ```bash
 # Clone repository
@@ -75,7 +75,7 @@ python build.py
 python main.py
 ```
 
-## 🛠️ Development
+## Development
 
 ```bash
 # Install development dependencies
@@ -85,7 +85,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
@@ -95,22 +95,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) - GUI framework
-- [OpenAI](https://openai.com/) - GPT API for translations
-- [PyInstaller](https://pyinstaller.org/) - Application bundling
-
-## 📧 Support
-
-If you have any questions or issues:
-
-- 🐛 [Report Issues](https://github.com/xpl0itK3y/linguaGPT/issues)
-- 💬 [Discussions](https://github.com/xpl0itK3y/linguaGPT/discussions)
-- 📧 Email: support@linguagpt.com
-
----

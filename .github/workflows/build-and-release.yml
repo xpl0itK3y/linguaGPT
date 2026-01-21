@@ -110,6 +110,47 @@ jobs:
           chmod +x dist/LinguaGPT
           cp dist/LinguaGPT LinguaGPT
 
+          # Create AppImage
+          echo "=== Creating AppImage ==="
+          mkdir -p packaging/AppImage/usr/bin
+          mkdir -p packaging/AppImage/usr/share/applications
+          mkdir -p packaging/AppImage/usr/share/icons/hicolor/256x256/apps
+
+          # Copy executable
+          cp dist/LinguaGPT packaging/AppImage/usr/bin/
+          chmod +x packaging/AppImage/usr/bin/LinguaGPT
+
+          # Create desktop file
+          cat > packaging/AppImage/usr/share/applications/linguagpt.desktop << EOF
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=/usr/bin/LinguaGPT
+          Icon=linguagpt
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOF
+
+          # Download AppImageTool
+          wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+          chmod +x appimagetool
+
+          # Create AppImage
+          ./appimagetool \
+            --no-appstream \
+            --create-desktop-file \
+            --icon-file packaging/AppImage/usr/share/icons/hicolor/256x256/apps/linguagpt.png \
+            LinguaGPT \
+            packaging/AppImage/usr/ \
+            LinguaGPT-${VERSION}-x86_64.AppImage || \
+            echo "AppImage creation failed, but continuing..."
+
+          # Copy AppImage to root
+          if [ -f "LinguaGPT-${VERSION}-x86_64.AppImage" ]; then
+            cp LinguaGPT-${VERSION}-x86_64.AppImage LinguaGPT.AppImage
+          fi
+
       - name: Package macOS
         if: runner.os == 'macOS'
         run: |
@@ -195,6 +236,7 @@ jobs:
           path: |
             LinguaGPT
             linguagpt_*_amd64.deb
+            LinguaGPT.AppImage
           retention-days: 7
 
       - name: Upload macOS artifacts
@@ -255,36 +297,46 @@ jobs:
             echo "✅ Copied LinguaGPT executable"
           fi
 
-          if [ -f artifacts/linux-artifacts/linguagpt_*_amd64.deb ]; then
+          if [ -f "artifacts/linux-artifacts/linguagpt_*_amd64.deb" ]; then
             cp artifacts/linux-artifacts/linguagpt_*_amd64.deb release/
             echo "✅ Copied .deb package"
+          fi
+
+          if [ -f "artifacts/linux-artifacts/LinguaGPT.AppImage" ]; then
+            cp artifacts/linux-artifacts/LinguaGPT.AppImage release/
+            echo "✅ Copied AppImage"
+          fi
+
+          if [ -f artifacts/linux-artifacts/linguagpt_*_amd64.deb ]; then
+            cp artifacts/linux-artifacts/linguagpt_*_amd64.deb release/
+            echo "Copied .deb package"
           fi
 
           echo "=== Copying macOS files ==="
           if [ -f artifacts/macos-artifacts/LinguaGPT-*.dmg ]; then
             cp artifacts/macos-artifacts/LinguaGPT-*.dmg release/
-            echo "✅ Copied .dmg file"
+            echo "Copied .dmg file"
           fi
 
           if [ -f artifacts/macos-artifacts/LinguaGPT.app.zip ]; then
             cp artifacts/macos-artifacts/LinguaGPT.app.zip release/
-            echo "✅ Copied .app.zip"
+            echo "Copied .app.zip"
           fi
 
           echo "=== Copying Windows files ==="
           if [ -f artifacts/windows-artifacts/LinguaGPT.exe ]; then
             cp artifacts/windows-artifacts/LinguaGPT.exe release/
-            echo "✅ Copied .exe file"
+            echo "Copied .exe file"
           fi
 
           if [ -f artifacts/windows-artifacts/LinguaGPT.exe.zip ]; then
             cp artifacts/windows-artifacts/LinguaGPT.exe.zip release/
-            echo "✅ Copied portable ZIP"
+            echo "Copied portable ZIP"
           fi
 
           if [ -f artifacts/windows-artifacts/LinguaGPT-Setup-*.exe ]; then
             cp artifacts/windows-artifacts/LinguaGPT-Setup-*.exe release/
-            echo "✅ Copied installer"
+            echo "Copied installer"
           fi
 
           echo "=== Final release files ==="
@@ -296,59 +348,21 @@ jobs:
           files: release/*
           name: LinguaGPT v${{ steps.get_version.outputs.version }}
           body: |
-            ## 🚀 LinguaGPT v${{ steps.get_version.outputs.version }}
-
-            AI-powered translation tool using GPT models.
-
-            ### 📦 Downloads
+            ## Downloads
 
             **Windows**
-            - **Installer**: `LinguaGPT-Setup-*.exe` (recommended)
-            - **Portable**: `LinguaGPT.exe`
+            - `LinguaGPT-Setup-*.exe` (Installer)
+            - `LinguaGPT.exe` (Portable)
+            - `LinguaGPT.exe.zip` (ZIP)
 
             **macOS**
-            - **DMG image**: `LinguaGPT-*.dmg` (recommended)
-            - **App Bundle**: `LinguaGPT.app.zip`
+            - `LinguaGPT-*.dmg` (DMG)
+            - `LinguaGPT.app.zip` (App Bundle)
 
             **Linux**
-            - **DEB package**: `linguagpt_*_amd64.deb` (Ubuntu/Debian)
-            - **Executable**: `LinguaGPT`
-
-            ### 📋 Installation
-
-            **Windows:**
-            ```
-            Run LinguaGPT-Setup-*.exe or just LinguaGPT.exe
-            ```
-
-            **macOS:**
-            ```bash
-            # Open DMG and drag to Applications
-            open LinguaGPT-*.dmg
-            ```
-
-            **Linux:**
-            ```bash
-            # Option 1: Install DEB package
-            sudo dpkg -i linguagpt_*_amd64.deb
-
-            # Option 2: Run standalone
-            chmod +x LinguaGPT
-            ./LinguaGPT
-            ```
-
-            ### 🔧 Requirements
-
-            - OpenAI API key
-            - Internet connection
-
-            ### 📝 Changes
-
-            Automatically built application for all platforms.
-
-            ---
-
-            **Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.version }}
+            - `linguagpt_*_amd64.deb` (DEB Package)
+            - `LinguaGPT` (Executable)
+            - `LinguaGPT.AppImage` (Universal)
           draft: false
           prerelease: false
         env:
