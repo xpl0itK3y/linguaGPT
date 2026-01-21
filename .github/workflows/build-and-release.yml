@@ -90,15 +90,19 @@ jobs:
       - name: Create Linux .deb package
         if: runner.os == 'Linux'
         run: |
-          chmod +x scripts/build_deb.sh
-          bash scripts/build_deb.sh
+          chmod +x scripts/build_deb.sh || echo "build_deb.sh not found"
+          if [ -f "scripts/build_deb.sh" ]; then
+            bash scripts/build_deb.sh || echo "DEB package creation failed"
+          fi
         continue-on-error: true
 
       - name: Create macOS DMG
         if: runner.os == 'macOS'
         run: |
-          chmod +x scripts/build_dmg.sh
-          bash scripts/build_dmg.sh
+          chmod +x scripts/build_dmg.sh || echo "build_dmg.sh not found"
+          if [ -f "scripts/build_dmg.sh" ]; then
+            bash scripts/build_dmg.sh || echo "DMG creation failed"
+          fi
         continue-on-error: true
 
       - name: Create Windows installer
@@ -109,6 +113,8 @@ jobs:
             New-Item -ItemType Directory -Force -Path installers | Out-Null
             Compress-Archive -Path "dist\LinguaGPT.exe" -DestinationPath "installers\LinguaGPT-Windows.zip" -Force
             echo "Created portable ZIP archive"
+          } else {
+            echo "LinguaGPT.exe not found in dist/"
           }
         continue-on-error: true
 
@@ -146,7 +152,7 @@ jobs:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && success()
     
     steps:
       - name: Checkout code
@@ -156,6 +162,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+
+      - name: List downloaded artifacts
+        run: |
+          find artifacts -type f -name "*" || echo "No artifacts found"
+          ls -la artifacts/ || echo "No artifacts directory"
 
       - name: Extract version from tag
         id: get_version
@@ -168,9 +179,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/linux-artifacts/*
-            artifacts/macos-artifacts/*
-            artifacts/windows-artifacts/*
+            artifacts/linux-artifacts/**/*
+            artifacts/macos-artifacts/**/*
+            artifacts/windows-artifacts/**/*
           name: Release v${{ steps.get_version.outputs.version }}
           body: |
             ## LinguaGPT v${{ steps.get_version.outputs.version }}
