@@ -200,14 +200,17 @@ jobs:
           
           echo "=== Final release files ==="
           ls -la release-files/ || echo "No release files"
+          echo ""
+          echo "=== Release directory details ==="
+          find release-files -type f -exec ls -la {} \; || echo "No files in release directory"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: release-files/*
-          name: Release v${{ steps.get_version.outputs.version }}
+          name: Release v${ steps.get_version.outputs.version }
           body: |
-            ## LinguaGPT v${{ steps.get_version.outputs.version }}
+            ## LinguaGPT v${ steps.get_version.outputs.version }
             
             ### 📦 Downloads
             
