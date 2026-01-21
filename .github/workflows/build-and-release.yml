@@ -3,8 +3,8 @@ name: Build and Release
 on:
   push:
     tags:
-      - "v*.*.*" # Triggers on tag creation like v1.0.0
-  workflow_dispatch: # Allows manual triggering
+      - "v*.*.*"
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-      fail-fast: false # Continue build even if one platform fails
+      fail-fast: false
 
     steps:
       - name: Checkout code
@@ -35,61 +35,157 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxcb-randr0 libxcb-xtest0 libxcb-shape0 libxcb-xkb1 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxkbcommon-x11-0 libx11-6 libx11-xcb1 libfontconfig1 libfreetype6 libdbus-1-3 libgl1 libglx-mesa0 libegl1 libqt6core6 libqt6gui6 libqt6widgets6 libqt6network6 libqt6printsupport6 libqt6svg6 qt6-base-dev-tools
+          sudo apt-get install -y \
+            libxcb-xinerama0 libxcb-randr0 libxcb-xtest0 \
+            libxcb-shape0 libxcb-xkb1 libxcb-icccm4 \
+            libxcb-image0 libxcb-keysyms1 libxcb-render-util0 \
+            libxkbcommon-x11-0 libx11-6 libx11-xcb1 \
+            libfontconfig1 libfreetype6 libdbus-1-3 \
+            libgl1 libglx-mesa0 libegl1 \
+            libqt6core6 libqt6gui6 libqt6widgets6 \
+            libqt6network6 libqt6printsupport6 libqt6svg6 \
+            qt6-base-dev-tools
 
       - name: Build application (Linux/macOS)
         if: runner.os != 'Windows'
-        run: |
-          python build.py
+        run: python build.py
         env:
           GITHUB_ACTIONS: true
           QT_QPA_PLATFORM: offscreen
 
       - name: Build application (Windows)
         if: runner.os == 'Windows'
-        run: |
-          python build.py
+        run: python build.py
         env:
           GITHUB_ACTIONS: true
 
-      - name: Test executable (Linux)
+      # ===== PACKAGING =====
+
+      - name: Package Linux
         if: runner.os == 'Linux'
         run: |
+          # Create DEB package structure
+          mkdir -p packaging/deb/DEBIAN
+          mkdir -p packaging/deb/usr/bin
+          mkdir -p packaging/deb/usr/share/applications
+          mkdir -p packaging/deb/usr/share/icons/hicolor/256x256/apps
+
+          # Copy executable
+          cp dist/LinguaGPT packaging/deb/usr/bin/
+          chmod +x packaging/deb/usr/bin/LinguaGPT
+
+          # Get version from tag
+          VERSION="${GITHUB_REF#refs/tags/v}"
+
+          # Create control file
+          cat > packaging/deb/DEBIAN/control << EOF
+          Package: linguagpt
+          Version: $VERSION
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: LinguaGPT Team <support@linguagpt.com>
+          Description: AI-powered translation tool
+           LinguaGPT is a modern translation application powered by GPT models.
+           It provides high-quality translations using OpenAI's API.
+          EOF
+
+          # Create desktop entry
+          cat > packaging/deb/usr/share/applications/linguagpt.desktop << EOF
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=/usr/bin/LinguaGPT
+          Icon=linguagpt
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOF
+
+          # Build DEB package
+          dpkg-deb --build packaging/deb
+          mv packaging/deb.deb "linguagpt_${VERSION}_amd64.deb"
+
+          # Also create standalone executable
           chmod +x dist/LinguaGPT
-          # Test if executable starts without GUI
-          timeout 10s dist/LinguaGPT --help || echo "Executable test completed"
-        continue-on-error: true
+          cp dist/LinguaGPT LinguaGPT
 
-      - name: Create Linux .deb package
-        if: runner.os == 'Linux'
-        run: |
-          chmod +x scripts/build_deb.sh || echo "build_deb.sh not found"
-          if [ -f "scripts/build_deb.sh" ]; then
-            bash scripts/build_deb.sh || echo "DEB package creation failed"
-          fi
-        continue-on-error: true
-
-      - name: Create macOS DMG
+      - name: Package macOS
         if: runner.os == 'macOS'
         run: |
-          chmod +x scripts/build_dmg.sh || echo "build_dmg.sh not found"
-          if [ -f "scripts/build_dmg.sh" ]; then
-            bash scripts/build_dmg.sh || echo "DMG creation failed"
-          fi
-        continue-on-error: true
+          VERSION="${GITHUB_REF#refs/tags/v}"
 
-      - name: Create Windows installer
+          # Install create-dmg if available
+          brew install create-dmg 2>/dev/null || true
+
+          # Create DMG
+          if command -v create-dmg &> /dev/null; then
+            create-dmg \
+              --volname "LinguaGPT" \
+              --volicon "dist/LinguaGPT.app/Contents/Resources/icon.icns" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
+              --icon "LinguaGPT.app" 175 120 \
+              --hide-extension "LinguaGPT.app" \
+              --app-drop-link 425 120 \
+              "LinguaGPT-${VERSION}.dmg" \
+              "dist/LinguaGPT.app" || \
+            hdiutil create -volname "LinguaGPT" \
+              -srcfolder "dist/LinguaGPT.app" \
+              -ov -format UDZO \
+              "LinguaGPT-${VERSION}.dmg"
+          else
+            hdiutil create -volname "LinguaGPT" \
+              -srcfolder "dist/LinguaGPT.app" \
+              -ov -format UDZO \
+              "LinguaGPT-${VERSION}.dmg"
+          fi
+
+          # Create ZIP with .app
+          cd dist
+          zip -r ../LinguaGPT.app.zip LinguaGPT.app
+          cd ..
+
+      - name: Package Windows
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          # Create simple archive if Inno Setup is not available
-          if (Test-Path "dist\LinguaGPT.exe") {
-            New-Item -ItemType Directory -Force -Path installers | Out-Null
-            Compress-Archive -Path "dist\LinguaGPT.exe" -DestinationPath "installers\LinguaGPT-Windows.zip" -Force
-            echo "Created portable ZIP archive"
-          } else {
-            echo "LinguaGPT.exe not found in dist/"
+          # Create portable ZIP
+          Compress-Archive -Path "dist\LinguaGPT.exe" -DestinationPath "LinguaGPT.exe.zip" -Force
+
+          # Copy standalone exe
+          Copy-Item "dist\LinguaGPT.exe" -Destination "LinguaGPT.exe"
+
+          # Try to create installer with Inno Setup (if available)
+          $innoSetup = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $innoSetup) {
+            # Create Inno Setup script
+            $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+
+            @"
+          [Setup]
+          AppName=LinguaGPT
+          AppVersion=$version
+          DefaultDirName={pf}\LinguaGPT
+          DefaultGroupName=LinguaGPT
+          OutputDir=.
+          OutputBaseFilename=LinguaGPT-Setup-$version
+          Compression=lzma2
+          SolidCompression=yes
+
+          [Files]
+          Source: "dist\LinguaGPT.exe"; DestDir: "{app}"
+
+          [Icons]
+          Name: "{group}\LinguaGPT"; Filename: "{app}\LinguaGPT.exe"
+          Name: "{commondesktop}\LinguaGPT"; Filename: "{app}\LinguaGPT.exe"
+          "@ | Out-File -FilePath "installer.iss" -Encoding UTF8
+
+            & $innoSetup "installer.iss"
           }
-        continue-on-error: true
+
+      # ===== UPLOAD ARTIFACTS =====
 
       - name: Upload Linux artifacts
         if: runner.os == 'Linux'
@@ -97,10 +193,9 @@ jobs:
         with:
           name: linux-artifacts
           path: |
-            dist/LinguaGPT
-            installers/*.deb
+            LinguaGPT
+            linguagpt_*_amd64.deb
           retention-days: 7
-        continue-on-error: true
 
       - name: Upload macOS artifacts
         if: runner.os == 'macOS'
@@ -108,10 +203,9 @@ jobs:
         with:
           name: macos-artifacts
           path: |
-            dist/LinguaGPT.app
-            installers/*.dmg
+            LinguaGPT-*.dmg
+            LinguaGPT.app.zip
           retention-days: 7
-        continue-on-error: true
 
       - name: Upload Windows artifacts
         if: runner.os == 'Windows'
@@ -119,16 +213,16 @@ jobs:
         with:
           name: windows-artifacts
           path: |
-            dist/LinguaGPT.exe
-            installers/*
+            LinguaGPT.exe
+            LinguaGPT.exe.zip
+            LinguaGPT-Setup-*.exe
           retention-days: 7
-        continue-on-error: true
 
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') && success()
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
@@ -139,101 +233,122 @@ jobs:
         with:
           path: artifacts
 
-      - name: List downloaded artifacts
-        run: |
-          echo "=== Listing artifacts directory structure ==="
-          find artifacts -type f || echo "No artifacts found"
-          echo ""
-          echo "=== Listing top-level directories ==="
-          ls -la artifacts/ || echo "No artifacts directory"
-          echo ""
-          echo "=== Listing all subdirectories ==="
-          find artifacts -type d || echo "No subdirectories"
-          echo ""
-          echo "=== Verifying key files ==="
-          [ -f "artifacts/linux-artifacts/LinguaGPT" ] && echo "✓ Linux binary found" || echo "✗ Linux binary missing"
-          [ -f "artifacts/windows-artifacts/LinguaGPT.exe" ] && echo "✓ Windows binary found" || echo "✗ Windows binary missing"
-          [ -f "artifacts/macos-artifacts/LinguaGPT.app/Contents/Info.plist" ] && echo "✓ macOS app found" || echo "✗ macOS app missing"
-
       - name: Extract version from tag
         id: get_version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION="${GITHUB_REF#refs/tags/v}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
-          echo "Release version will be: v$VERSION"
+          echo "Extracted version: $VERSION"
+
+      - name: List all downloaded files
+        run: |
+          echo "=== All downloaded artifacts ==="
+          find artifacts -type f -ls
 
       - name: Prepare release files
         run: |
-          echo "=== Creating release directory ==="
-          mkdir -p release-files
+          mkdir -p release
 
-          echo "=== Copying Linux binary ==="
+          echo "=== Copying Linux files ==="
           if [ -f "artifacts/linux-artifacts/LinguaGPT" ]; then
-            cp artifacts/linux-artifacts/LinguaGPT release-files/
-            echo "✓ Linux binary copied"
-          else
-            echo "✗ Linux binary not found"
+            cp artifacts/linux-artifacts/LinguaGPT release/
+            echo "✅ Copied LinguaGPT executable"
+          fi
+
+          if [ -f artifacts/linux-artifacts/linguagpt_*_amd64.deb ]; then
+            cp artifacts/linux-artifacts/linguagpt_*_amd64.deb release/
+            echo "✅ Copied .deb package"
+          fi
+
+          echo "=== Copying macOS files ==="
+          if [ -f artifacts/macos-artifacts/LinguaGPT-*.dmg ]; then
+            cp artifacts/macos-artifacts/LinguaGPT-*.dmg release/
+            echo "✅ Copied .dmg file"
+          fi
+
+          if [ -f artifacts/macos-artifacts/LinguaGPT.app.zip ]; then
+            cp artifacts/macos-artifacts/LinguaGPT.app.zip release/
+            echo "✅ Copied .app.zip"
           fi
 
           echo "=== Copying Windows files ==="
-          if [ -f "artifacts/windows-artifacts/LinguaGPT.exe" ]; then
-            cp artifacts/windows-artifacts/LinguaGPT.exe release-files/
-            echo "✓ Windows binary copied"
-          else
-            echo "✗ Windows binary not found"
+          if [ -f artifacts/windows-artifacts/LinguaGPT.exe ]; then
+            cp artifacts/windows-artifacts/LinguaGPT.exe release/
+            echo "✅ Copied .exe file"
           fi
 
-          if [ -f "artifacts/windows-artifacts/LinguaGPT-Windows.zip" ]; then
-            cp artifacts/windows-artifacts/LinguaGPT-Windows.zip release-files/
-            echo "✓ Windows ZIP copied"
-          else
-            echo "✗ Windows ZIP not found"
+          if [ -f artifacts/windows-artifacts/LinguaGPT.exe.zip ]; then
+            cp artifacts/windows-artifacts/LinguaGPT.exe.zip release/
+            echo "✅ Copied portable ZIP"
           fi
 
-          echo "=== Copying macOS app ==="
-          if [ -d "artifacts/macos-artifacts/LinguaGPT.app" ]; then
-            cp -r artifacts/macos-artifacts/LinguaGPT.app release-files/
-            echo "✓ macOS app copied"
-          else
-            echo "✗ macOS app not found"
+          if [ -f artifacts/windows-artifacts/LinguaGPT-Setup-*.exe ]; then
+            cp artifacts/windows-artifacts/LinguaGPT-Setup-*.exe release/
+            echo "✅ Copied installer"
           fi
 
           echo "=== Final release files ==="
-          ls -la release-files/ || echo "No release files"
-          echo ""
-          echo "=== Release directory details ==="
-          find release-files -type f -exec ls -la {} \; || echo "No files in release directory"
+          ls -lah release/
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release-files/*
-          name: Release v${{ steps.get_version.outputs.version }}
+          files: release/*
+          name: LinguaGPT v${{ steps.get_version.outputs.version }}
           body: |
-            ## LinguaGPT v${{ steps.get_version.outputs.version }}
+            ## 🚀 LinguaGPT v${{ steps.get_version.outputs.version }}
+
+            AI-powered translation tool using GPT models.
 
             ### 📦 Downloads
 
-            #### Windows
+            **Windows**
             - **Installer**: `LinguaGPT-Setup-*.exe` (recommended)
             - **Portable**: `LinguaGPT.exe`
 
-            #### macOS
-            - **DMG image**: `LinguaGPT-*.dmg`
-            - **Application**: `LinguaGPT.app` (inside DMG)
+            **macOS**
+            - **DMG image**: `LinguaGPT-*.dmg` (recommended)
+            - **App Bundle**: `LinguaGPT.app.zip`
 
-            #### Linux
+            **Linux**
             - **DEB package**: `linguagpt_*_amd64.deb` (Ubuntu/Debian)
             - **Executable**: `LinguaGPT`
 
             ### 📋 Installation
 
-            See [INSTALL.md](docs/INSTALL.md) for detailed instructions
+            **Windows:**
+            ```
+            Run LinguaGPT-Setup-*.exe or just LinguaGPT.exe
+            ```
 
-            ### 🚀 Changes
+            **macOS:**
+            ```bash
+            # Open DMG and drag to Applications
+            open LinguaGPT-*.dmg
+            ```
+
+            **Linux:**
+            ```bash
+            # Option 1: Install DEB package
+            sudo dpkg -i linguagpt_*_amd64.deb
+
+            # Option 2: Run standalone
+            chmod +x LinguaGPT
+            ./LinguaGPT
+            ```
+
+            ### 🔧 Requirements
+
+            - OpenAI API key
+            - Internet connection
+
+            ### 📝 Changes
 
             Automatically built application for all platforms.
+
+            ---
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ steps.get_version.outputs.version }}
           draft: false
           prerelease: false
         env:
