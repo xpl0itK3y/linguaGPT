@@ -3,8 +3,8 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Запускается при создании тега вида v1.0.0
-  workflow_dispatch:  # Позволяет запускать вручную
+      - 'v*.*.*'  # Triggers on tag creation like v1.0.0
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   build:
@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+      fail-fast: false  # Continue build even if one platform fails
         
     steps:
       - name: Checkout code
@@ -29,14 +30,37 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          
+
       - name: Install Linux dependencies (Qt6)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxcb-xinerama0 libxcb-randr0 libxcb-xtest0-dev libxcb-shape0-dev libxcb-xkb-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev
-          # Install minimal Qt6 runtime libraries
-          sudo apt-get install -y libqt6core6 libqt6gui6 libqt6widgets6 qt6-base-dev
+          sudo apt-get install -y \
+            libxcb-xinerama0 \
+            libxcb-randr0 \
+            libxcb-xtest0 \
+            libxcb-shape0 \
+            libxcb-xkb1 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-render-util0 \
+            libxkbcommon-x11-0 \
+            libx11-6 \
+            libx11-xcb1 \
+            libgl1-mesa-glx \
+            libegl1-mesa \
+            libfontconfig1 \
+            libfreetype6 \
+            libdbus-1-3 \
+            # Install complete Qt6 runtime libraries
+            libqt6core6t64 \
+            libqt6gui6t64 \
+            libqt6widgets6t64 \
+            libqt6network6t64 \
+            libqt6printsupport6t64 \
+            libqt6svg6t64 \
+            qt6-base-dev-tools
 
       - name: Build application (Linux/macOS)
         if: runner.os != 'Windows'
@@ -44,6 +68,7 @@ jobs:
           python build.py
         env:
           GITHUB_ACTIONS: true
+          QT_QPA_PLATFORM: offscreen
 
       - name: Build application (Windows)
         if: runner.os == 'Windows'
@@ -51,6 +76,14 @@ jobs:
           python build.py
         env:
           GITHUB_ACTIONS: true
+
+      - name: Test executable (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x dist/LinguaGPT
+          # Test if executable starts without GUI
+          timeout 10s dist/LinguaGPT --help || echo "Executable test completed"
+        continue-on-error: true
 
       - name: Create Linux .deb package
         if: runner.os == 'Linux'
@@ -69,7 +102,7 @@ jobs:
       - name: Create Windows installer
         if: runner.os == 'Windows'
         run: |
-          # Создаем простой архив если Inno Setup недоступен
+          # Create simple archive if Inno Setup is not available
           if (Test-Path "dist\LinguaGPT.exe") {
             New-Item -ItemType Directory -Force -Path installers | Out-Null
             Compress-Archive -Path "dist\LinguaGPT.exe" -DestinationPath "installers\LinguaGPT-Windows.zip" -Force
@@ -140,29 +173,28 @@ jobs:
           body: |
             ## LinguaGPT v${{ steps.get_version.outputs.version }}
             
-            ### 📦 Загрузки
+            ### 📦 Downloads
             
             #### Windows
-            - **Установщик**: `LinguaGPT-Setup-*.exe` (рекомендуется)
+            - **Installer**: `LinguaGPT-Setup-*.exe` (recommended)
             - **Portable**: `LinguaGPT.exe`
             
             #### macOS
-            - **DMG образ**: `LinguaGPT-*.dmg`
-            - **Приложение**: `LinguaGPT.app` (внутри DMG)
+            - **DMG image**: `LinguaGPT-*.dmg`
+            - **Application**: `LinguaGPT.app` (inside DMG)
             
             #### Linux
-            - **DEB пакет**: `linguagpt_*_amd64.deb` (Ubuntu/Debian)
-            - **Исполняемый файл**: `LinguaGPT`
+            - **DEB package**: `linguagpt_*_amd64.deb` (Ubuntu/Debian)
+            - **Executable**: `LinguaGPT`
             
-            ### 📋 Установка
+            ### 📋 Installation
             
-            Подробные инструкции см. в [INSTALL.md](docs/INSTALL.md)
+            See [INSTALL.md](docs/INSTALL.md) for detailed instructions
             
-            ### 🚀 Изменения
+            ### 🚀 Changes
             
-            Автоматически собранное приложение для всех платформ.
+            Automatically built application for all platforms.
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

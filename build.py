@@ -4,6 +4,7 @@ Script for building LinguaGPT into an executable file
 
 import os
 import sys
+import subprocess
 
 import PyInstaller.__main__
 
@@ -19,66 +20,108 @@ is_github_actions = os.environ.get('GITHUB_ACTIONS') == 'true'
 app_name = "LinguaGPT"
 main_script = "main.py"
 
-# PyInstaller parameters - optimized for GitHub Actions
+def check_qt6_libraries():
+    """Check if Qt6 libraries are available on Linux"""
+    if not is_linux:
+        return True
+    
+    required_libs = [
+        'libQt6Core.so.6',
+        'libQt6Gui.so.6', 
+        'libQt6Widgets.so.6'
+    ]
+    
+    for lib in required_libs:
+        result = subprocess.run(['ldconfig', '-p'], capture_output=True, text=True)
+        if lib not in result.stdout:
+            print(f"❌ Missing Qt6 library: {lib}")
+            return False
+    
+    print("✅ Qt6 libraries found")
+    return True
+
+# PyInstaller parameters - simplified and more reliable
 pyinstaller_args = [
     main_script,
     f"--name={app_name}",
-    "--onefile",  # Single executable file
-    "--windowed",  # No console (GUI application)
+    "--onefile",
+    "--windowed",
     "--clean",
     "--noconfirm",
-    # Exclude problematic Qt6 modules that cause dependency issues
+    # Only exclude modules that are definitely not needed
     "--exclude-module=PyQt6.QtMultimedia",
     "--exclude-module=PyQt6.QtWebEngine",
     "--exclude-module=PyQt6.Qt3D",
-    "--exclude-module=PyQt6.QtSpatialAudio",
-    "--exclude-module=PyQt6.QtNfc",
-    "--exclude-module=PyQt6.QtTextToSpeech",
     "--exclude-module=PyQt6.QtQuick3D",
-    "--exclude-module=PyQt6.QtQuick3DHelpers",
-    "--exclude-module=PyQt6.QtQuick3DAssetUtils",
-    "--exclude-module=PyQt6.QtQuick3DEffects",
-    "--exclude-module=PyQt6.QtQuick3DParticleEffects",
-    "--exclude-module=PyQt6.QtQuick3DRuntimeRender",
-    "--exclude-module=PyQt6.QtQuick3DUtils",
-    # Additional exclusions for GitHub Actions compatibility
-    "--exclude-module=PyQt6.QtSql",
-    "--exclude-module=PyQt6.QtNetwork",
     "--exclude-module=PyQt6.QtBluetooth",
     "--exclude-module=PyQt6.QtPositioning",
     "--exclude-module=PyQt6.QtSensors",
     "--exclude-module=PyQt6.QtSerialPort",
     "--exclude-module=PyQt6.QtWebChannel",
     "--exclude-module=PyQt6.QtWebSockets",
+    "--exclude-module=PyQt6.QtTextToSpeech",
+    "--exclude-module=PyQt6.QtNfc",
+    "--exclude-module=PyQt6.QtSpatialAudio",
 ]
 
-# Add icon if available (optional)
-# if os.path.exists('resources/icon.ico'):
-#     pyinstaller_args.append('--icon=resources/icon.ico')
+# Essential hidden imports
+pyinstaller_args.extend([
+    "--hidden-import=PyQt6.QtCore",
+    "--hidden-import=PyQt6.QtGui",
+    "--hidden-import=PyQt6.QtWidgets",
+    "--hidden-import=PyQt6.QtNetwork",
+    "--hidden-import=PyQt6.QtPrintSupport",
+    "--hidden-import=PyQt6.QtSvg",
+])
 
-# Additional data to include - focus only on essential modules
-pyinstaller_args.extend(
-    [
-        "--hidden-import=PyQt6",
-        "--hidden-import=PyQt6.QtCore",
-        "--hidden-import=PyQt6.QtGui",
-        "--hidden-import=PyQt6.QtWidgets",
-        "--collect-data=PyQt6",
-        "--collect-submodules=PyQt6",
-        # Add specific plugins needed for basic GUI functionality
-        # Only essential plugins to avoid missing dependencies
+# Add platform-specific configurations
+if is_linux:
+    if is_github_actions:
+        print("🔧 Configuring for GitHub Actions Linux environment")
+        # Add Qt6 runtime path for GitHub Actions
+        qt6_path = "/usr/lib/x86_64-linux-gnu"
+        if os.path.exists(qt6_path):
+            pyinstaller_args.extend([
+                f"--add-binary={qt6_path}/libQt6Core.so.6:.",
+                f"--add-binary={qt6_path}/libQt6Gui.so.6:.",
+                f"--add-binary={qt6_path}/libQt6Widgets.so.6:.",
+                f"--add-binary={qt6_path}/libQt6Network.so.6:.",
+                f"--add-binary={qt6_path}/libQt6PrintSupport.so.6:.",
+                f"--add-binary={qt6_path}/libQt6Svg.so.6:.",
+            ])
+    
+    # Add essential Qt6 plugins for Linux
+    pyinstaller_args.extend([
+        "--collect-binaries=PyQt6.Qt6.plugins.platforms",
+        "--collect-binaries=PyQt6.Qt6.plugins.platformthemes",
+        "--collect-binaries=PyQt6.Qt6.plugins.styles",
+        "--collect-binaries=PyQt6.Qt6.plugins.iconengines",
+        "--collect-binaries=PyQt6.Qt6.plugins.imageformats",
+    ])
+
+elif is_windows:
+    pyinstaller_args.extend([
         "--collect-binaries=PyQt6.Qt6.plugins.platforms",
         "--collect-binaries=PyQt6.Qt6.plugins.styles",
         "--collect-binaries=PyQt6.Qt6.plugins.iconengines",
         "--collect-binaries=PyQt6.Qt6.plugins.imageformats",
-        # Add plugin exclusion NOTES: This parameter does not exist in PyInstaller 6.3.0
-        # "--exclude-unused-plugins",
-    ]
-)
+    ])
+
+elif is_mac:
+    pyinstaller_args.extend([
+        "--collect-binaries=PyQt6.Qt6.plugins.platforms",
+        "--collect-binaries=PyQt6.Qt6.plugins.styles",
+        "--collect-binaries=PyQt6.Qt6.plugins.iconengines",
+        "--collect-binaries=PyQt6.Qt6.plugins.imageformats",
+    ])
 
 # Start build
 print(f"🚀 Building {app_name} for {sys.platform}...")
 print(f"📦 Parameters: {' '.join(pyinstaller_args)}")
+
+# Check Qt6 libraries on Linux
+if is_linux and not check_qt6_libraries():
+    print("⚠️  Warning: Some Qt6 libraries are missing. Build may fail.")
 
 try:
     PyInstaller.__main__.run(pyinstaller_args)
@@ -95,4 +138,7 @@ try:
 
 except Exception as e:
     print(f"\n❌ Build error: {e}")
+    if is_github_actions:
+        print("💡 This is a known issue with GitHub Actions Qt6 environment.")
+        print("💡 The build artifacts may still work despite warnings.")
     sys.exit(1)

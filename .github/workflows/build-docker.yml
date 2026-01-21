@@ -1,0 +1,32 @@
+name: Build with Docker (Linux)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Linux executable with Docker
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t linguagpt-builder .
+
+      - name: Build application in Docker
+        run: |
+          docker run --rm -v $(pwd):/app linguagpt-builder
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-docker-artifacts
+          path: |
+            dist/LinguaGPT
+          retention-days: 7
