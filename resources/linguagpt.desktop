@@ -1,0 +1,25 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LinguaGPT
+GenericName=AI Translator
+Comment=GPT-powered translation application
+Comment[ru]=Переводчик на основе GPT
+Exec=/usr/bin/linguagpt
+Icon=linguagpt
+Terminal=false
+Categories=Utility;Office;Translation;
+Keywords=translator;translation;gpt;ai;language;
+StartupWMClass=LinguaGPT
+StartupNotify=true
+Actions=Translate;Settings;
+
+[Desktop Action Translate]
+Name=Open Translator
+Name[ru]=Открыть переводчик
+Exec=/usr/bin/linguagpt
+
+[Desktop Action Settings]
+Name=Settings
+Name[ru]=Настройки
+Exec=/usr/bin/linguagpt --settings

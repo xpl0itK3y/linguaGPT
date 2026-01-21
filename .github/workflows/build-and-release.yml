@@ -1,0 +1,156 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Запускается при создании тега вида v1.0.0
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build application (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: |
+          python build.py
+
+      - name: Build application (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          python build.py
+
+      - name: Create Linux .deb package
+        if: runner.os == 'Linux'
+        run: |
+          chmod +x scripts/build_deb.sh
+          bash scripts/build_deb.sh
+        continue-on-error: true
+
+      - name: Create macOS DMG
+        if: runner.os == 'macOS'
+        run: |
+          chmod +x scripts/build_dmg.sh
+          bash scripts/build_dmg.sh
+        continue-on-error: true
+
+      - name: Create Windows installer
+        if: runner.os == 'Windows'
+        run: |
+          # Создаем простой архив если Inno Setup недоступен
+          if (Test-Path "dist\LinguaGPT.exe") {
+            New-Item -ItemType Directory -Force -Path installers | Out-Null
+            Compress-Archive -Path "dist\LinguaGPT.exe" -DestinationPath "installers\LinguaGPT-Windows.zip" -Force
+            echo "Created portable ZIP archive"
+          }
+        continue-on-error: true
+
+      - name: Upload Linux artifacts
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            dist/LinguaGPT
+            installers/*.deb
+          retention-days: 7
+
+      - name: Upload macOS artifacts
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            dist/LinguaGPT.app
+            installers/*.dmg
+          retention-days: 7
+
+      - name: Upload Windows artifacts
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            dist/LinguaGPT.exe
+            installers/*
+          retention-days: 7
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/linux-artifacts/*
+            artifacts/macos-artifacts/*
+            artifacts/windows-artifacts/*
+          name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## LinguaGPT v${{ steps.get_version.outputs.version }}
+            
+            ### 📦 Загрузки
+            
+            #### Windows
+            - **Установщик**: `LinguaGPT-Setup-*.exe` (рекомендуется)
+            - **Portable**: `LinguaGPT.exe`
+            
+            #### macOS
+            - **DMG образ**: `LinguaGPT-*.dmg`
+            - **Приложение**: `LinguaGPT.app` (внутри DMG)
+            
+            #### Linux
+            - **DEB пакет**: `linguagpt_*_amd64.deb` (Ubuntu/Debian)
+            - **Исполняемый файл**: `LinguaGPT`
+            
+            ### 📋 Установка
+            
+            Подробные инструкции см. в [INSTALL.md](docs/INSTALL.md)
+            
+            ### 🚀 Изменения
+            
+            Автоматически собранное приложение для всех платформ.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
