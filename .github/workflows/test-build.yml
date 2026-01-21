@@ -28,7 +28,7 @@ jobs:
       - name: Install minimal Qt6 dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libqt6core6 libqt6gui6 libqt6widgets6 libqt6network6 libqt6printsupport6 libqt6svg6 libgl1-mesa-glx libegl1-mesa
+          sudo apt-get install -y libqt6core6 libqt6gui6 libqt6widgets6 libqt6network6 libqt6printsupport6 libqt6svg6 libgl1 libglx-mesa0 libegl1
 
       - name: Test basic import
         run: |
