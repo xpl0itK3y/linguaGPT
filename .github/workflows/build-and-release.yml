@@ -135,21 +135,37 @@ jobs:
           Categories=Utility;Office;Translation;
           EOF
 
-          # Create simple icon (placeholder)
-          cat > packaging/AppImage/AppDir/linguagpt.png << 'EOFICON'
-          (binary placeholder - using .desktop file)
-          EOFICON
+          # Install ImageMagick for icon creation
+          sudo apt-get install -y imagemagick
+
+          # Create simple icon (16x16 PNG)
+          convert -size 256x256 xc:#4A90E2 -gravity center -pointsize 72 -annotate +0+0 "LG" packaging/AppImage/AppDir/linguagpt.png
 
           # Download AppImageTool
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
 
+          # Verify AppDir structure
+          echo "=== AppDir structure ==="
+          find packaging/AppImage/AppDir -type f -ls
+
           # Create AppImage
-          ./appimagetool --no-appstream packaging/AppImage/AppDir LinguaGPT-${VERSION}-x86_64.AppImage || echo "AppImage creation failed, but continuing..."
+          echo "=== Running appimagetool ==="
+          ./appimagetool --no-appstream packaging/AppImage/AppDir LinguaGPT-${VERSION}-x86_64.AppImage || {
+            echo "❌ AppImage creation failed!"
+            echo "Exit code: $?"
+            echo "AppDir contents:"
+            ls -la packaging/AppImage/AppDir/
+            ls -la packaging/AppImage/AppDir/usr/bin/
+            exit 0
+          }
 
           # Copy AppImage to root
           if [ -f "LinguaGPT-${VERSION}-x86_64.AppImage" ]; then
             cp LinguaGPT-${VERSION}-x86_64.AppImage LinguaGPT.AppImage
+            echo "✅ AppImage created successfully"
+          else
+            echo "❌ AppImage file not found"
           fi
 
       - name: Package macOS
