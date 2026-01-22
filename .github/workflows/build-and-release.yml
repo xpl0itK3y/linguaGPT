@@ -168,7 +168,7 @@ jobs:
           - Release version ${VERSION}
           EOFSPEC
 
-          rpmbuild -bb ~/rpmbuild/SPECS/linguagpt.spec
+          rpmbuild -bb --nodeps ~/rpmbuild/SPECS/linguagpt.spec
           cp ~/rpmbuild/RPMS/x86_64/linguagpt-${VERSION}-1.*.x86_64.rpm .
 
           # ========================================
