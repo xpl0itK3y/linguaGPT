@@ -69,9 +69,9 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/v}"
 
           # Create control file
-          cat > packaging/deb/DEBIAN/control << 'EOF'
+          cat > packaging/deb/DEBIAN/control << EOF
 Package: linguagpt
-Version: REPLACE_VERSION
+Version: ${VERSION}
 Section: utils
 Priority: optional
 Architecture: amd64
@@ -82,20 +82,17 @@ Description: AI-powered translation tool
  It provides high-quality translations using OpenAI's API.
 EOF
 
-          # Replace version placeholder
-          sed -i "s/REPLACE_VERSION/${VERSION}/" packaging/deb/DEBIAN/control
-
           # Create desktop entry
           cat > packaging/deb/usr/share/applications/linguagpt.desktop << EOF
-          [Desktop Entry]
-          Name=LinguaGPT
-          Comment=AI-powered translation tool
-          Exec=/usr/bin/LinguaGPT
-          Icon=linguagpt
-          Terminal=false
-          Type=Application
-          Categories=Utility;Office;Translation;
-          EOF
+[Desktop Entry]
+Name=LinguaGPT
+Comment=AI-powered translation tool
+Exec=/usr/bin/LinguaGPT
+Icon=linguagpt
+Terminal=false
+Type=Application
+Categories=Utility;Office;Translation;
+EOF
 
           # Build DEB package
           dpkg-deb --build packaging/deb
@@ -116,28 +113,28 @@ EOF
           chmod +x packaging/AppImage/AppDir/usr/bin/LinguaGPT
 
           # Create AppRun script
-          cat > packaging/AppImage/AppDir/AppRun << 'EOF'
-          #!/bin/bash
-          SELF=$(readlink -f "$0")
-          HERE=${SELF%/*}
-          export PATH="${HERE}/usr/bin:${HERE}/usr/sbin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/lib:${HERE}/usr/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
-          export QTC_PLUGIN_PATH="${HERE}/usr/plugins"
-          exec "${HERE}/usr/bin/LinguaGPT" "$@"
-          EOF
+          cat > packaging/AppImage/AppDir/AppRun << EOF
+#!/bin/bash
+SELF=\$(readlink -f "\$0")
+HERE=\${SELF%/*}
+export PATH="\${HERE}/usr/bin:\${HERE}/usr/sbin:\${PATH}"
+export LD_LIBRARY_PATH="\${HERE}/usr/lib:\${HERE}/usr/lib/x86_64-linux-gnu:\${LD_LIBRARY_PATH}"
+export QTC_PLUGIN_PATH="\${HERE}/usr/plugins"
+exec "\${HERE}/usr/bin/LinguaGPT" "\$@"
+EOF
           chmod +x packaging/AppImage/AppDir/AppRun
 
           # Create desktop file
           cat > packaging/AppImage/AppDir/linguagpt.desktop << EOF
-          [Desktop Entry]
-          Name=LinguaGPT
-          Comment=AI-powered translation tool
-          Exec=LinguaGPT
-          Icon=linguagpt
-          Terminal=false
-          Type=Application
-          Categories=Utility;Office;Translation;
-          EOF
+[Desktop Entry]
+Name=LinguaGPT
+Comment=AI-powered translation tool
+Exec=LinguaGPT
+Icon=linguagpt
+Terminal=false
+Type=Application
+Categories=Utility;Office;Translation;
+EOF
 
           # Install ImageMagick for icon creation
           sudo apt-get install -y imagemagick
