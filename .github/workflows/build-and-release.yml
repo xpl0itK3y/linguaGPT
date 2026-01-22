@@ -169,7 +169,7 @@ jobs:
           EOFSPEC
 
           rpmbuild -bb --nodeps ~/rpmbuild/SPECS/linguagpt.spec
-          cp ~/rpmbuild/RPMS/x86_64/linguagpt-${VERSION}-1.*.x86_64.rpm .
+          cp ~/rpmbuild/RPMS/x86_64/linguagpt-*.rpm .
 
           # ========================================
           # 3. Arch Linux Package (PKGBUILD + tarball)
@@ -481,7 +481,7 @@ jobs:
           name: linux-artifacts
           path: |
             linguagpt_*_amd64.deb
-            linguagpt-*-1.*.x86_64.rpm
+            linguagpt-*.rpm
             linguagpt-arch-*.tar.gz
             LinguaGPT.AppImage
             linguagpt-*-linux-x86_64.tar.gz
