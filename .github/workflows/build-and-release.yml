@@ -596,23 +596,6 @@ jobs:
             cd linguagpt-arch-*
             makepkg -si
             ```
-
-            #### Flatpak (Any distro)
-            ```bash
-            # Extract manifest and build
-            tar xzf flatpak-manifest-*.tar.gz
-            cd flatpak
-            flatpak-builder build com.linguagpt.LinguaGPT.yml
-            ```
-
-            #### Snap (Any distro)
-            ```bash
-            # Extract and build
-            tar xzf snap-manifest-*.tar.gz
-            cd snap
-            snapcraft
-            sudo snap install linguagpt_*.snap --dangerous
-            ```
           draft: false
           prerelease: false
         env:
