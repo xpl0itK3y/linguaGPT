@@ -55,20 +55,27 @@ jobs:
       - name: Package Linux
         if: runner.os == 'Linux'
         run: |
-          # Create DEB package structure
+          VERSION="${GITHUB_REF#refs/tags/v}"
+
+          # Install packaging tools
+          sudo apt-get install -y imagemagick fuse libfuse2 rpm
+
+          # Create icon (used by all packages)
+          convert -size 256x256 xc:#4A90E2 -gravity center -pointsize 72 -annotate +0+0 "LG" linguagpt-icon.png
+
+          # ========================================
+          # 1. DEB Package (Debian/Ubuntu/Mint)
+          # ========================================
+          echo "=== Creating DEB package ==="
           mkdir -p packaging/deb/DEBIAN
           mkdir -p packaging/deb/usr/bin
           mkdir -p packaging/deb/usr/share/applications
           mkdir -p packaging/deb/usr/share/icons/hicolor/256x256/apps
 
-          # Copy executable
           cp dist/LinguaGPT packaging/deb/usr/bin/
           chmod +x packaging/deb/usr/bin/LinguaGPT
+          cp linguagpt-icon.png packaging/deb/usr/share/icons/hicolor/256x256/apps/linguagpt.png
 
-          # Get version from tag
-          VERSION="${GITHUB_REF#refs/tags/v}"
-
-          # Create control file
           cat > packaging/deb/DEBIAN/control << EOFCONTROL
           Package: linguagpt
           Version: ${VERSION}
@@ -82,7 +89,6 @@ jobs:
            It provides high-quality translations using OpenAI's API.
           EOFCONTROL
 
-          # Create desktop entry
           cat > packaging/deb/usr/share/applications/linguagpt.desktop << EOFDESKTOP
           [Desktop Entry]
           Name=LinguaGPT
@@ -94,25 +100,161 @@ jobs:
           Categories=Utility;Office;Translation;
           EOFDESKTOP
 
-          # Build DEB package
           dpkg-deb --build packaging/deb
           mv packaging/deb.deb "linguagpt_${VERSION}_amd64.deb"
 
-          # Also create standalone executable
-          chmod +x dist/LinguaGPT
-          cp dist/LinguaGPT LinguaGPT
+          # ========================================
+          # 2. RPM Package (Fedora/RHEL/CentOS/Rocky)
+          # ========================================
+          echo "=== Creating RPM package ==="
+          mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p packaging/rpm/linguagpt-${VERSION}
+          mkdir -p packaging/rpm/linguagpt-${VERSION}/usr/bin
+          mkdir -p packaging/rpm/linguagpt-${VERSION}/usr/share/applications
+          mkdir -p packaging/rpm/linguagpt-${VERSION}/usr/share/icons/hicolor/256x256/apps
 
-          # Create AppImage
+          cp dist/LinguaGPT packaging/rpm/linguagpt-${VERSION}/usr/bin/
+          chmod +x packaging/rpm/linguagpt-${VERSION}/usr/bin/LinguaGPT
+          cp linguagpt-icon.png packaging/rpm/linguagpt-${VERSION}/usr/share/icons/hicolor/256x256/apps/linguagpt.png
+
+          cat > packaging/rpm/linguagpt-${VERSION}/usr/share/applications/linguagpt.desktop << EOFDESKTOP
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=/usr/bin/LinguaGPT
+          Icon=linguagpt
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOFDESKTOP
+
+          cd packaging/rpm
+          tar czf ~/rpmbuild/SOURCES/linguagpt-${VERSION}.tar.gz linguagpt-${VERSION}
+          cd ../..
+
+          cat > ~/rpmbuild/SPECS/linguagpt.spec << EOFSPEC
+          Name:           linguagpt
+          Version:        ${VERSION}
+          Release:        1%{?dist}
+          Summary:        AI-powered translation tool
+          License:        MIT
+          URL:            https://github.com/yourusername/linguagpt
+          Source0:        %{name}-%{version}.tar.gz
+
+          BuildRequires:  coreutils
+          Requires:       qt6-qtbase, qt6-qtsvg
+
+          %description
+          LinguaGPT is a modern translation application powered by GPT models.
+          It provides high-quality translations using OpenAI's API.
+
+          %prep
+          %setup -q
+
+          %install
+          rm -rf %{buildroot}
+          mkdir -p %{buildroot}/usr/bin
+          mkdir -p %{buildroot}/usr/share/applications
+          mkdir -p %{buildroot}/usr/share/icons/hicolor/256x256/apps
+          cp -a * %{buildroot}/
+
+          %files
+          %attr(0755, root, root) /usr/bin/LinguaGPT
+          /usr/share/applications/linguagpt.desktop
+          /usr/share/icons/hicolor/256x256/apps/linguagpt.png
+
+          %changelog
+          * $(date "+%a %b %d %Y") LinguaGPT Team <support@linguagpt.com> - ${VERSION}-1
+          - Release version ${VERSION}
+          EOFSPEC
+
+          rpmbuild -bb ~/rpmbuild/SPECS/linguagpt.spec
+          cp ~/rpmbuild/RPMS/x86_64/linguagpt-${VERSION}-1.*.x86_64.rpm .
+
+          # ========================================
+          # 3. Arch Linux Package (PKGBUILD + tarball)
+          # ========================================
+          echo "=== Creating Arch Linux package ==="
+          mkdir -p packaging/arch
+
+          cat > packaging/arch/PKGBUILD << 'EOFPKG'
+          # Maintainer: LinguaGPT Team <support@linguagpt.com>
+          pkgname=linguagpt
+          pkgver=VERSION_PLACEHOLDER
+          pkgrel=1
+          pkgdesc="AI-powered translation tool"
+          arch=('x86_64')
+          url="https://github.com/yourusername/linguagpt"
+          license=('MIT')
+          depends=('qt6-base' 'qt6-svg')
+          source=("linguagpt-${pkgver}.tar.gz")
+          sha256sums=('SKIP')
+
+          package() {
+              install -Dm755 "${srcdir}/LinguaGPT" "${pkgdir}/usr/bin/LinguaGPT"
+              install -Dm644 "${srcdir}/linguagpt.desktop" "${pkgdir}/usr/share/applications/linguagpt.desktop"
+              install -Dm644 "${srcdir}/linguagpt.png" "${pkgdir}/usr/share/icons/hicolor/256x256/apps/linguagpt.png"
+          }
+          EOFPKG
+
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" packaging/arch/PKGBUILD
+
+          # Create tarball for Arch
+          mkdir -p packaging/arch/linguagpt-${VERSION}
+          cp dist/LinguaGPT packaging/arch/linguagpt-${VERSION}/
+          cp linguagpt-icon.png packaging/arch/linguagpt-${VERSION}/linguagpt.png
+
+          cat > packaging/arch/linguagpt-${VERSION}/linguagpt.desktop << EOFDESKTOP
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=/usr/bin/LinguaGPT
+          Icon=linguagpt
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOFDESKTOP
+
+          cd packaging/arch
+          tar czf linguagpt-${VERSION}.tar.gz linguagpt-${VERSION}/
+          cd ../..
+
+          # Create installation package
+          mkdir -p linguagpt-arch-${VERSION}
+          cp packaging/arch/PKGBUILD linguagpt-arch-${VERSION}/
+          cp packaging/arch/linguagpt-${VERSION}.tar.gz linguagpt-arch-${VERSION}/
+
+          cat > linguagpt-arch-${VERSION}/INSTALL.txt << EOFINSTALL
+          # LinguaGPT Installation for Arch Linux
+
+          ## Installation:
+          1. cd linguagpt-arch-${VERSION}
+          2. makepkg -si
+
+          ## Or use the AUR helper:
+          yay -S linguagpt
+          # or
+          paru -S linguagpt
+
+          ## Manual installation:
+          sudo pacman -U linguagpt-${VERSION}-1-x86_64.pkg.tar.zst
+          EOFINSTALL
+
+          tar czf linguagpt-arch-${VERSION}.tar.gz linguagpt-arch-${VERSION}/
+
+          # ========================================
+          # 4. AppImage (Universal Linux)
+          # ========================================
           echo "=== Creating AppImage ==="
           mkdir -p packaging/AppImage/AppDir/usr/bin
           mkdir -p packaging/AppImage/AppDir/usr/share/applications
           mkdir -p packaging/AppImage/AppDir/usr/share/icons/hicolor/256x256/apps
 
-          # Copy executable
           cp dist/LinguaGPT packaging/AppImage/AppDir/usr/bin/
           chmod +x packaging/AppImage/AppDir/usr/bin/LinguaGPT
+          cp linguagpt-icon.png packaging/AppImage/AppDir/usr/share/icons/hicolor/256x256/apps/linguagpt.png
+          cp linguagpt-icon.png packaging/AppImage/AppDir/linguagpt.png
 
-          # Create AppRun script
           cat > packaging/AppImage/AppDir/AppRun << 'EOFAPPRUN'
           #!/bin/bash
           SELF=$(readlink -f "$0")
@@ -124,7 +266,6 @@ jobs:
           EOFAPPRUN
           chmod +x packaging/AppImage/AppDir/AppRun
 
-          # Create desktop file
           cat > packaging/AppImage/AppDir/linguagpt.desktop << 'EOFDESKTOP'
           [Desktop Entry]
           Name=LinguaGPT
@@ -136,51 +277,141 @@ jobs:
           Categories=Utility;Office;Translation;
           EOFDESKTOP
 
-          # Install ImageMagick for icon creation
-          sudo apt-get install -y imagemagick
-
-          # Create simple icon (16x16 PNG)
-          convert -size 256x256 xc:#4A90E2 -gravity center -pointsize 72 -annotate +0+0 "LG" packaging/AppImage/AppDir/linguagpt.png
-
-          # Install FUSE for AppImage
-          sudo apt-get install -y fuse libfuse2
-
-          # Download AppImageTool
           wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
           chmod +x appimagetool
 
-          # Verify AppDir structure
-          echo "=== AppDir structure ==="
-          find packaging/AppImage/AppDir -type f -ls
-
-          # Create AppImage
-          echo "=== Running appimagetool ==="
           ARCH=x86_64 ./appimagetool --no-appstream packaging/AppImage/AppDir LinguaGPT-${VERSION}-x86_64.AppImage
-          if [ $? -ne 0 ]; then
-            echo "❌ AppImage creation failed!"
-            echo "Exit code: $?"
-            echo "AppDir contents:"
-            ls -la packaging/AppImage/AppDir/
-            ls -la packaging/AppImage/AppDir/usr/bin/
-          fi
 
-          # Copy AppImage to root
           if [ -f "LinguaGPT-${VERSION}-x86_64.AppImage" ]; then
             cp LinguaGPT-${VERSION}-x86_64.AppImage LinguaGPT.AppImage
-            echo "AppImage created successfully"
-          else
-            echo "AppImage file not found"
+            chmod +x LinguaGPT.AppImage
+            echo "✓ AppImage created successfully"
           fi
+
+          # ========================================
+          # 5. Flatpak manifest (for Flathub)
+          # ========================================
+          echo "=== Creating Flatpak manifest ==="
+          mkdir -p packaging/flatpak
+
+          cat > packaging/flatpak/com.linguagpt.LinguaGPT.yml << EOFFLATPAK
+          app-id: com.linguagpt.LinguaGPT
+          runtime: org.kde.Platform
+          runtime-version: '6.6'
+          sdk: org.kde.Sdk
+          command: LinguaGPT
+          finish-args:
+            - --share=ipc
+            - --socket=x11
+            - --socket=wayland
+            - --device=dri
+            - --share=network
+          modules:
+            - name: linguagpt
+              buildsystem: simple
+              build-commands:
+                - install -Dm755 LinguaGPT /app/bin/LinguaGPT
+                - install -Dm644 linguagpt.desktop /app/share/applications/com.linguagpt.LinguaGPT.desktop
+                - install -Dm644 linguagpt.png /app/share/icons/hicolor/256x256/apps/com.linguagpt.LinguaGPT.png
+              sources:
+                - type: file
+                  path: LinguaGPT
+                - type: file
+                  path: linguagpt.desktop
+                - type: file
+                  path: linguagpt.png
+          EOFFLATPAK
+
+          cp dist/LinguaGPT packaging/flatpak/
+          cp linguagpt-icon.png packaging/flatpak/linguagpt.png
+
+          cat > packaging/flatpak/linguagpt.desktop << EOFDESKTOP
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=LinguaGPT
+          Icon=com.linguagpt.LinguaGPT
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOFDESKTOP
+
+          tar czf flatpak-manifest-${VERSION}.tar.gz -C packaging flatpak/
+
+          # ========================================
+          # 6. Snap package manifest
+          # ========================================
+          echo "=== Creating Snap manifest ==="
+          mkdir -p packaging/snap
+
+          cat > packaging/snap/snapcraft.yaml << EOFSNAP
+          name: linguagpt
+          version: '${VERSION}'
+          summary: AI-powered translation tool
+          description: |
+            LinguaGPT is a modern translation application powered by GPT models.
+            It provides high-quality translations using OpenAI's API.
+
+          base: core22
+          confinement: strict
+          grade: stable
+
+          apps:
+            linguagpt:
+              command: bin/LinguaGPT
+              plugs:
+                - desktop
+                - desktop-legacy
+                - wayland
+                - x11
+                - network
+                - home
+
+          parts:
+            linguagpt:
+              plugin: dump
+              source: .
+              organize:
+                LinguaGPT: bin/LinguaGPT
+          EOFSNAP
+
+          cp dist/LinguaGPT packaging/snap/
+          tar czf snap-manifest-${VERSION}.tar.gz -C packaging snap/
+
+          # ========================================
+          # 7. Standalone tarball
+          # ========================================
+          echo "=== Creating standalone tarball ==="
+          mkdir -p linguagpt-${VERSION}-linux-x86_64
+          cp dist/LinguaGPT linguagpt-${VERSION}-linux-x86_64/
+          chmod +x linguagpt-${VERSION}-linux-x86_64/LinguaGPT
+
+          cat > linguagpt-${VERSION}-linux-x86_64/README.txt << EOFREADME
+          # LinguaGPT v${VERSION}
+
+          ## Quick Start:
+          ./LinguaGPT
+
+          ## System Requirements:
+          - Qt6 libraries
+          - glibc 2.31+
+
+          ## Installation (optional):
+          sudo cp LinguaGPT /usr/local/bin/
+          EOFREADME
+
+          tar czf linguagpt-${VERSION}-linux-x86_64.tar.gz linguagpt-${VERSION}-linux-x86_64/
+
+          echo "=== Package creation complete ==="
+          ls -lh *.deb *.rpm *.AppImage *.tar.gz 2>/dev/null || true
 
       - name: Package macOS
         if: runner.os == 'macOS'
         run: |
           VERSION="${GITHUB_REF#refs/tags/v}"
 
-          # Install create-dmg if available
           brew install create-dmg 2>/dev/null || true
 
-          # Create DMG
           if command -v create-dmg &> /dev/null; then
             create-dmg \
               --volname "LinguaGPT" \
@@ -204,7 +435,6 @@ jobs:
               "LinguaGPT-${VERSION}.dmg"
           fi
 
-          # Create ZIP with .app
           cd dist
           zip -r ../LinguaGPT.app.zip LinguaGPT.app
           cd ..
@@ -213,16 +443,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          # Create portable ZIP
           Compress-Archive -Path "dist\LinguaGPT.exe" -DestinationPath "LinguaGPT.exe.zip" -Force
-
-          # Copy standalone exe
           Copy-Item "dist\LinguaGPT.exe" -Destination "LinguaGPT.exe"
 
-          # Try to create installer with Inno Setup (if available)
           $innoSetup = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (Test-Path $innoSetup) {
-            # Create Inno Setup script
             $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
 
             @"
@@ -255,9 +480,13 @@ jobs:
         with:
           name: linux-artifacts
           path: |
-            LinguaGPT
             linguagpt_*_amd64.deb
+            linguagpt-*-1.*.x86_64.rpm
+            linguagpt-arch-*.tar.gz
             LinguaGPT.AppImage
+            linguagpt-*-linux-x86_64.tar.gz
+            flatpak-manifest-*.tar.gz
+            snap-manifest-*.tar.gz
           retention-days: 7
 
       - name: Upload macOS artifacts
@@ -313,47 +542,13 @@ jobs:
           mkdir -p release
 
           echo "=== Copying Linux files ==="
-          if [ -f "artifacts/linux-artifacts/LinguaGPT" ]; then
-            cp artifacts/linux-artifacts/LinguaGPT release/
-            echo "Copied LinguaGPT executable"
-          fi
-
-          if ls artifacts/linux-artifacts/linguagpt_*_amd64.deb 1> /dev/null 2>&1; then
-            cp artifacts/linux-artifacts/linguagpt_*_amd64.deb release/
-            echo "Copied .deb package"
-          fi
-
-          if [ -f "artifacts/linux-artifacts/LinguaGPT.AppImage" ]; then
-            cp artifacts/linux-artifacts/LinguaGPT.AppImage release/
-            echo "Copied AppImage"
-          fi
+          find artifacts/linux-artifacts -type f -exec cp {} release/ \;
 
           echo "=== Copying macOS files ==="
-          if ls artifacts/macos-artifacts/LinguaGPT-*.dmg 1> /dev/null 2>&1; then
-            cp artifacts/macos-artifacts/LinguaGPT-*.dmg release/
-            echo "Copied .dmg file"
-          fi
-
-          if [ -f artifacts/macos-artifacts/LinguaGPT.app.zip ]; then
-            cp artifacts/macos-artifacts/LinguaGPT.app.zip release/
-            echo "Copied .app.zip"
-          fi
+          find artifacts/macos-artifacts -type f -exec cp {} release/ \;
 
           echo "=== Copying Windows files ==="
-          if [ -f artifacts/windows-artifacts/LinguaGPT.exe ]; then
-            cp artifacts/windows-artifacts/LinguaGPT.exe release/
-            echo "Copied .exe file"
-          fi
-
-          if [ -f artifacts/windows-artifacts/LinguaGPT.exe.zip ]; then
-            cp artifacts/windows-artifacts/LinguaGPT.exe.zip release/
-            echo "Copied portable ZIP"
-          fi
-
-          if ls artifacts/windows-artifacts/LinguaGPT-Setup-*.exe 1> /dev/null 2>&1; then
-            cp artifacts/windows-artifacts/LinguaGPT-Setup-*.exe release/
-            echo "Copied installer"
-          fi
+          find artifacts/windows-artifacts -type f -exec cp {} release/ \;
 
           echo "=== Final release files ==="
           ls -lah release/
@@ -364,21 +559,60 @@ jobs:
           files: release/*
           name: LinguaGPT v${{ steps.get_version.outputs.version }}
           body: |
-            ## Downloads
+            ## 📦 Downloads
 
-            **Windows**
-            - `LinguaGPT-Setup-*.exe` (Installer)
-            - `LinguaGPT.exe` (Portable)
-            - `LinguaGPT.exe.zip` (ZIP)
+            ### Windows
+            - `LinguaGPT-Setup-*.exe` - Windows Installer (recommended)
+            - `LinguaGPT.exe` - Portable executable
+            - `LinguaGPT.exe.zip` - Portable ZIP archive
 
-            **macOS**
-            - `LinguaGPT-*.dmg` (DMG)
-            - `LinguaGPT.app.zip` (App Bundle)
+            ### macOS
+            - `LinguaGPT-*.dmg` - macOS Disk Image (recommended)
+            - `LinguaGPT.app.zip` - App Bundle ZIP
 
-            **Linux**
-            - `linguagpt_*_amd64.deb` (DEB Package)
-            - `LinguaGPT` (Executable)
-            - `LinguaGPT.AppImage` (Universal)
+            ### Linux
+
+            #### Universal (All Distros)
+            - `LinguaGPT.AppImage` - Universal AppImage (recommended for most users)
+            - `linguagpt-*-linux-x86_64.tar.gz` - Standalone tarball
+
+            #### Debian/Ubuntu/Linux Mint
+            ```bash
+            sudo dpkg -i linguagpt_*_amd64.deb
+            sudo apt-get install -f
+            ```
+
+            #### Fedora/RHEL/CentOS/Rocky Linux
+            ```bash
+            sudo dnf install linguagpt-*-1.*.x86_64.rpm
+            # or for older versions
+            sudo yum install linguagpt-*-1.*.x86_64.rpm
+            ```
+
+            #### Arch Linux/Manjaro
+            ```bash
+            # Extract and install
+            tar xzf linguagpt-arch-*.tar.gz
+            cd linguagpt-arch-*
+            makepkg -si
+            ```
+
+            #### Flatpak (Any distro)
+            ```bash
+            # Extract manifest and build
+            tar xzf flatpak-manifest-*.tar.gz
+            cd flatpak
+            flatpak-builder build com.linguagpt.LinguaGPT.yml
+            ```
+
+            #### Snap (Any distro)
+            ```bash
+            # Extract and build
+            tar xzf snap-manifest-*.tar.gz
+            cd snap
+            snapcraft
+            sudo snap install linguagpt_*.snap --dangerous
+            ```
           draft: false
           prerelease: false
         env:
