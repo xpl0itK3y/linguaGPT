@@ -70,29 +70,29 @@ jobs:
 
           # Create control file
           cat > packaging/deb/DEBIAN/control << EOF
-Package: linguagpt
-Version: ${VERSION}
-Section: utils
-Priority: optional
-Architecture: amd64
-Maintainer: LinguaGPT Team <support@linguagpt.com>
-Depends: libqt6core6t64, libqt6gui6t64, libqt6widgets6t64, libqt6network6t64, libqt6printsupport6t64, libqt6svg6, libqt6dbus6t64, libstdc++6, libc6
-Description: AI-powered translation tool
- LinguaGPT is a modern translation application powered by GPT models.
- It provides high-quality translations using OpenAI's API.
-EOF
+          Package: linguagpt
+          Version: ${VERSION}
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: LinguaGPT Team <support@linguagpt.com>
+          Depends: libqt6core6t64, libqt6gui6t64, libqt6widgets6t64, libqt6network6t64, libqt6printsupport6t64, libqt6svg6, libqt6dbus6t64, libstdc++6, libc6
+          Description: AI-powered translation tool
+          LinguaGPT is a modern translation application powered by GPT models.
+          It provides high-quality translations using OpenAI's API.
+          EOF
 
           # Create desktop entry
           cat > packaging/deb/usr/share/applications/linguagpt.desktop << EOF
-[Desktop Entry]
-Name=LinguaGPT
-Comment=AI-powered translation tool
-Exec=/usr/bin/LinguaGPT
-Icon=linguagpt
-Terminal=false
-Type=Application
-Categories=Utility;Office;Translation;
-EOF
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=/usr/bin/LinguaGPT
+          Icon=linguagpt
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOF
 
           # Build DEB package
           dpkg-deb --build packaging/deb
@@ -114,27 +114,27 @@ EOF
 
           # Create AppRun script
           cat > packaging/AppImage/AppDir/AppRun << EOF
-#!/bin/bash
-SELF=\$(readlink -f "\$0")
-HERE=\${SELF%/*}
-export PATH="\${HERE}/usr/bin:\${HERE}/usr/sbin:\${PATH}"
-export LD_LIBRARY_PATH="\${HERE}/usr/lib:\${HERE}/usr/lib/x86_64-linux-gnu:\${LD_LIBRARY_PATH}"
-export QTC_PLUGIN_PATH="\${HERE}/usr/plugins"
-exec "\${HERE}/usr/bin/LinguaGPT" "\$@"
-EOF
+          #!/bin/bash
+          SELF=\$(readlink -f "\$0")
+          HERE=\${SELF%/*}
+          export PATH="\${HERE}/usr/bin:\${HERE}/usr/sbin:\${PATH}"
+          export LD_LIBRARY_PATH="\${HERE}/usr/lib:\${HERE}/usr/lib/x86_64-linux-gnu:\${LD_LIBRARY_PATH}"
+          export QTC_PLUGIN_PATH="\${HERE}/usr/plugins"
+          exec "\${HERE}/usr/bin/LinguaGPT" "\$@"
+          EOF
           chmod +x packaging/AppImage/AppDir/AppRun
 
           # Create desktop file
           cat > packaging/AppImage/AppDir/linguagpt.desktop << EOF
-[Desktop Entry]
-Name=LinguaGPT
-Comment=AI-powered translation tool
-Exec=LinguaGPT
-Icon=linguagpt
-Terminal=false
-Type=Application
-Categories=Utility;Office;Translation;
-EOF
+          [Desktop Entry]
+          Name=LinguaGPT
+          Comment=AI-powered translation tool
+          Exec=LinguaGPT
+          Icon=linguagpt
+          Terminal=false
+          Type=Application
+          Categories=Utility;Office;Translation;
+          EOF
 
           # Install ImageMagick for icon creation
           sudo apt-get install -y imagemagick
