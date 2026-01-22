@@ -155,7 +155,7 @@ jobs:
 
           # Create AppImage
           echo "=== Running appimagetool ==="
-          ./appimagetool --no-appstream packaging/AppImage/AppDir LinguaGPT-${VERSION}-x86_64.AppImage
+          ARCH=x86_64 ./appimagetool --no-appstream packaging/AppImage/AppDir LinguaGPT-${VERSION}-x86_64.AppImage
           if [ $? -ne 0 ]; then
             echo "❌ AppImage creation failed!"
             echo "Exit code: $?"
@@ -167,9 +167,9 @@ jobs:
           # Copy AppImage to root
           if [ -f "LinguaGPT-${VERSION}-x86_64.AppImage" ]; then
             cp LinguaGPT-${VERSION}-x86_64.AppImage LinguaGPT.AppImage
-            echo "✅ AppImage created successfully"
+            echo "AppImage created successfully"
           else
-            echo "❌ AppImage file not found"
+            echo "AppImage file not found"
           fi
 
       - name: Package macOS
@@ -315,17 +315,17 @@ jobs:
           echo "=== Copying Linux files ==="
           if [ -f "artifacts/linux-artifacts/LinguaGPT" ]; then
             cp artifacts/linux-artifacts/LinguaGPT release/
-            echo "✅ Copied LinguaGPT executable"
+            echo "Copied LinguaGPT executable"
           fi
 
           if ls artifacts/linux-artifacts/linguagpt_*_amd64.deb 1> /dev/null 2>&1; then
             cp artifacts/linux-artifacts/linguagpt_*_amd64.deb release/
-            echo "✅ Copied .deb package"
+            echo "Copied .deb package"
           fi
 
           if [ -f "artifacts/linux-artifacts/LinguaGPT.AppImage" ]; then
             cp artifacts/linux-artifacts/LinguaGPT.AppImage release/
-            echo "✅ Copied AppImage"
+            echo "Copied AppImage"
           fi
 
           echo "=== Copying macOS files ==="
